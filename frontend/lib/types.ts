@@ -48,7 +48,7 @@ export interface AnalyzeResponse {
   confidence: {
     total: number;
     front: number;
-    back: number;
+    back: number | null;
     formula: string;
   };
   condition: {

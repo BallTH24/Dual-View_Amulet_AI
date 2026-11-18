@@ -46,7 +46,8 @@ export default function DualCapture({
   onLoadDemoImages,
   onAnalyze,
 }: DualCaptureProps) {
-  const canSubmit = Boolean(frontFile && backFile);
+  const canSubmit = Boolean(frontFile);
+  const hasBoth = Boolean(frontFile && backFile);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -58,7 +59,7 @@ export default function DualCapture({
               {INTENT_TITLES[intent]}
             </h2>
             <p className="text-xs sm:text-sm text-[#B8AD9E] mt-1">
-              ถ่ายหรือเลือกรูปด้านหน้าและด้านหลัง แล้วระบบจะวงกลมจุดตำหนิพร้อมประเมินราคาให้ทันที
+              ถ่ายหรือเลือกรูปด้านหน้า (และด้านหลังถ้ามี) แล้วระบบจะตรวจจับพิมพ์ทรงและวงกลมจุดตำหนิให้ทันที
             </p>
           </div>
 
@@ -100,15 +101,15 @@ export default function DualCapture({
       {/* Front & Back Photo Slots with Drag-and-Drop + Dedicated Camera/Upload */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <CaptureSlot
-          title="1. ด้านหน้าองค์พระ"
-          hint="ให้เห็นพิมพ์ทรงและเส้นซุ้มชัดเจน (รองรับลากวางไฟล์ หรือถ่ายจากกล้อง)"
+          title="1. ด้านหน้าองค์พระ (จำเป็น)"
+          hint="ให้เห็นพิมพ์ทรงและเส้นซุ้มชัดเจน สำหรับ YOLOv11 ตรวจจำแนกพิมพ์พระ"
           preview={frontPreview}
           file={frontFile}
           onSelectFile={onSelectFront}
         />
         <CaptureSlot
-          title="2. ด้านหลังองค์พระ"
-          hint="ให้เห็นอักขระยันต์หรือพื้นผิวด้านหลัง (รองรับลากวางไฟล์ หรือถ่ายจากกล้อง)"
+          title="2. ด้านหลัง (ไม่บังคับ / แนะนำเพื่อดูคราบกรุ)"
+          hint="ให้เห็นอักขระยันต์ มวลสาร หรือคราบกรุ (ไม่บังคับ — แนะนำเพื่อตรวจจุดตำหนิครบถ้วน)"
           preview={backPreview}
           file={backFile}
           onSelectFile={onSelectBack}
@@ -118,14 +119,19 @@ export default function DualCapture({
       {/* Single Primary Action */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#1C1814] rounded-3xl p-5 border border-[#E6B85C]/35">
         <div className="text-xs sm:text-sm">
-          {canSubmit ? (
+          {hasBoth ? (
             <span className="inline-flex items-center gap-2 text-emerald-400 font-semibold">
               <CheckCircle2 className="w-5 h-5" />
-              พร้อมตรวจหาจุดตำหนิและคำนวณราคากลางแล้ว
+              พร้อมตรวจหาจุดตำหนิและคำนวณราคากลางครบทั้ง 2 ด้าน
+            </span>
+          ) : frontFile ? (
+            <span className="inline-flex items-center gap-2 text-[#E6B85C] font-semibold">
+              <CheckCircle2 className="w-5 h-5" />
+              พร้อมตรวจเฉพาะด้านหน้า (สามารถแนบรูปด้านหลังเพิ่มได้)
             </span>
           ) : (
             <span className="text-[#B8AD9E]">
-              ใส่รูปให้ครบทั้ง 2 ด้านก่อนกดตรวจ (หรือกด &ldquo;ใช้ภาพตัวอย่างทดสอบ&rdquo;)
+              ใส่รูปด้านหน้าเป็นอย่างน้อยก่อนกดตรวจ (หรือกด &ldquo;ใช้ภาพตัวอย่างทดสอบ&rdquo;)
             </span>
           )}
         </div>

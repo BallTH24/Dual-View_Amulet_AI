@@ -558,7 +558,7 @@ export async function analyzeAmulet(params: {
   apiBase: string;
   useMock: boolean;
   frontFile: File;
-  backFile: File;
+  backFile?: File | null;
   userMode: UserMode;
   mockPresetId?: string;
 }): Promise<AnalyzeResponse> {
@@ -571,7 +571,9 @@ export async function analyzeAmulet(params: {
 
   const formData = new FormData();
   formData.append("front_image", params.frontFile);
-  formData.append("back_image", params.backFile);
+  if (params.backFile) {
+    formData.append("back_image", params.backFile);
+  }
   formData.append("user_mode", params.userMode);
 
   const res = await fetch(`${params.apiBase.replace(/\/$/, "")}/api/analyze`, {

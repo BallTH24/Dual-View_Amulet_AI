@@ -192,7 +192,7 @@ export default function HomePage() {
   };
 
   const handleAnalyze = async () => {
-    if (!frontFile || !backFile) return;
+    if (!frontFile) return;
     setErrorMsg(null);
     setStep("processing");
 

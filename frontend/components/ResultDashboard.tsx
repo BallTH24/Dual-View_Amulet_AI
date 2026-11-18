@@ -131,6 +131,7 @@ export default function ResultDashboard({
 
   const displayedBackImage =
     showClahe && result.clahe_back_image ? result.clahe_back_image : backPreview;
+  const hasBackView = Boolean(displayedBackImage);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -140,8 +141,9 @@ export default function ResultDashboard({
           <div>
             <span className="text-xs font-semibold text-[#E6B85C]">
               ความมั่นใจรวม {result.confidence.total.toFixed(1)}% (หน้า{" "}
-              {result.confidence.front.toFixed(0)}% • หลัง{" "}
-              {result.confidence.back.toFixed(0)}%)
+              {result.confidence.front.toFixed(0)}%
+              {result.confidence.back != null ? ` • หลัง ${result.confidence.back.toFixed(0)}%` : ""}
+              )
               {result.system_specs
                 ? ` • ${result.system_specs.model_used} (${result.system_specs.device})`
                 : ""}
@@ -169,18 +171,20 @@ export default function ResultDashboard({
               <span>วงกลมตำหนิ ({defects.length})</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowClahe(!showClahe)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${
-                showClahe
-                  ? "bg-[#E6B85C] text-[#18130D]"
-                  : "bg-white/5 text-[#B8AD9E]"
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>ส่อง CLAHE</span>
-            </button>
+            {hasBackView && (
+              <button
+                type="button"
+                onClick={() => setShowClahe(!showClahe)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${
+                  showClahe
+                    ? "bg-[#E6B85C] text-[#18130D]"
+                    : "bg-white/5 text-[#B8AD9E]"
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>ส่อง CLAHE</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -210,31 +214,37 @@ export default function ResultDashboard({
         </div>
 
         {/* Front & Back Photos with Interactive Defect Circles & 3x Loupe */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          className={`grid gap-4 ${
+            hasBackView ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 max-w-lg mx-auto"
+          }`}
+        >
           <DefectPhotoFrame
-            title="ด้านหน้า (แตะวงกลมเพื่อดูจุดตำหนิ)"
+            title={hasBackView ? "ด้านหน้า (แตะวงกลมเพื่อดูจุดตำหนิ)" : "ด้านหน้า (ผลการตรวจจับพิมพ์และตำหนิ)"}
             imageSrc={frontPreview}
-            isClahe={showClahe}
+            isClahe={false}
             showCircles={showCircles}
             showLoupe={showLoupe}
             spots={defects.filter((d) => d.side === "front")}
             selectedId={selectedDefectId}
             onSelectSpot={setSelectedDefectId}
           />
-          <DefectPhotoFrame
-            title={
-              showClahe && result.clahe_back_image
-                ? "ด้านหลัง (OpenCV CLAHE จริง)"
-                : "ด้านหลัง (แตะวงกลมเพื่อดูจุดตำหนิ)"
-            }
-            imageSrc={displayedBackImage}
-            isClahe={showClahe && !result.clahe_back_image}
-            showCircles={showCircles}
-            showLoupe={showLoupe}
-            spots={defects.filter((d) => d.side === "back")}
-            selectedId={selectedDefectId}
-            onSelectSpot={setSelectedDefectId}
-          />
+          {hasBackView && (
+            <DefectPhotoFrame
+              title={
+                showClahe && result.clahe_back_image
+                  ? "ด้านหลัง (OpenCV CLAHE จริง)"
+                  : "ด้านหลัง (แตะวงกลมเพื่อดูจุดตำหนิ)"
+              }
+              imageSrc={displayedBackImage}
+              isClahe={showClahe && !result.clahe_back_image}
+              showCircles={showCircles}
+              showLoupe={showLoupe}
+              spots={defects.filter((d) => d.side === "back")}
+              selectedId={selectedDefectId}
+              onSelectSpot={setSelectedDefectId}
+            />
+          )}
         </div>
 
         {/* Defect Breakdown List */}
@@ -282,39 +292,53 @@ export default function ResultDashboard({
         )}
 
         {/* Keypoints & Reference Side-by-Side Drawer */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div
+          className={`grid gap-3 text-xs ${
+            hasBackView ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+          }`}
+        >
           <div className="rounded-2xl bg-[#12100E] p-3.5 space-y-1">
             <div className="font-semibold text-[#E6B85C]">จุดสังเกตด้านหน้า</div>
             <p className="text-[#C7BCAE] leading-relaxed">
               {result.amulet_info.front_keypoint}
             </p>
           </div>
-          <div className="rounded-2xl bg-[#12100E] p-3.5 space-y-1">
-            <div className="font-semibold text-[#E6B85C]">
-              จุดสังเกตด้านหลัง (CLAHE)
+          {hasBackView && (
+            <div className="rounded-2xl bg-[#12100E] p-3.5 space-y-1">
+              <div className="font-semibold text-[#E6B85C]">
+                จุดสังเกตด้านหลัง (CLAHE)
+              </div>
+              <p className="text-[#C7BCAE] leading-relaxed">
+                {result.amulet_info.back_keypoint}
+              </p>
             </div>
-            <p className="text-[#C7BCAE] leading-relaxed">
-              {result.amulet_info.back_keypoint}
-            </p>
-          </div>
+          )}
         </div>
 
         {showRefSide && (
           <div className="rounded-2xl bg-[#12100E] border border-white/10 p-4 space-y-3">
             <div className="text-xs font-bold text-[#E6B85C]">
-              เทียบภาพองค์ครูมาตรฐาน (หน้าชนหน้า – หลังชนหลัง)
+              {hasBackView
+                ? "เทียบภาพองค์ครูมาตรฐาน (หน้าชนหน้า – หลังชนหลัง)"
+                : "เทียบภาพองค์ครูมาตรฐาน (ด้านหน้า)"}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div
+              className={`grid gap-4 ${
+                hasBackView ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"
+              }`}
+            >
               <RefBox
                 label="องค์ครูด้านหน้า"
                 src={resolveRefImageUrl(apiBase, result.amulet_info.ref_front_img)}
                 fallbackName={result.amulet_info.ref_front_img}
               />
-              <RefBox
-                label="องค์ครูด้านหลัง"
-                src={resolveRefImageUrl(apiBase, result.amulet_info.ref_back_img)}
-                fallbackName={result.amulet_info.ref_back_img}
-              />
+              {hasBackView && (
+                <RefBox
+                  label="องค์ครูด้านหลัง"
+                  src={resolveRefImageUrl(apiBase, result.amulet_info.ref_back_img)}
+                  fallbackName={result.amulet_info.ref_back_img}
+                />
+              )}
             </div>
           </div>
         )}

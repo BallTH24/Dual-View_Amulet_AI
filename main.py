@@ -419,23 +419,21 @@ def detect_defects_and_condition(
 
 def determine_amulet_model(
     front_classes: List[str],
-    back_classes: List[str],
-    front_confs: List[float],
-    back_confs: List[float]
-) -> tuple[str, float, float]:
+    front_confs: List[float]
+) -> tuple[str, float]:
     """
     Matches the detected class to one of the 7 trained amulets in the database:
     somdej_watrakang, somdej_bangkhunprom, somdej_ketchaiyo,
     phra_nangphaya, phra_phong_suphan, phra_rod, phra_sumkor.
+    Strictly uses front_image predictions from YOLOv11.
     """
     db_keys = sorted(list(AMULETS_DB.keys()), key=len, reverse=True)
     if not db_keys:
-        return "somdej_watrakang", 92.5, 94.0
+        return "somdej_watrakang", 92.5
 
-    # Look for exact model key in predicted classes
+    # Look for exact model key in predicted front classes
     matched_key = None
     f_conf = 91.5
-    b_conf = 93.8
 
     for cls_name, conf in zip(front_classes, front_confs):
         c_clean = cls_name.lower().replace("_front", "").replace("_back", "").strip()
@@ -451,27 +449,11 @@ def determine_amulet_model(
         if matched_key:
             break
 
-    for cls_name, conf in zip(back_classes, back_confs):
-        c_clean = cls_name.lower().replace("_front", "").replace("_back", "").strip()
-        if c_clean in AMULETS_DB:
-            if not matched_key:
-                matched_key = c_clean
-            b_conf = max(conf * 100.0, 75.0)
-            break
-        for k in db_keys:
-            if k in c_clean:
-                if not matched_key:
-                    matched_key = k
-                b_conf = max(conf * 100.0, 75.0)
-                break
-        if matched_key and b_conf > 75.0:
-            break
-
     if not matched_key:
-        # Default fallback to somdej_watrakang or first db key
+        # Default fallback to first db key
         matched_key = db_keys[0]
 
-    return matched_key, round(f_conf, 1), round(b_conf, 1)
+    return matched_key, round(f_conf, 1)
 
 def generate_typhoon_summary(
     amulet: Dict[str, Any],
@@ -480,12 +462,13 @@ def generate_typhoon_summary(
     estimated_price_thb: int,
     defect_count: int,
     total_conf: float,
-    defects_list: Optional[List[Dict[str, Any]]] = None
+    defects_list: Optional[List[Dict[str, Any]]] = None,
+    has_back_image: bool = True
 ) -> str:
     """
     Calls Typhoon LLM (OpenAI-compatible) with 8.0-second timeout.
     Answers in Thai, concise, direct to the point, max 3-4 lines:
-    - b2c: explains front mold keypoints, back yantra/kraap-gru, defect locations, and recommends best province/market.
+    - b2c: explains front mold keypoints, (back yantra/kraap-gru if present), defect locations, and recommends best province/market.
     - b2b: analyzes defect spots, pawn/holding risk, and commercial valuation margin.
     Falls back gracefully to rich JSON-derived text if key is missing or call fails.
     """
@@ -512,17 +495,21 @@ def generate_typhoon_summary(
 
     # 1. Fallback text (concise 3-4 lines)
     if user_mode.lower() == "b2b":
+        risk_text = f"จุดตรวจความเสี่ยง: หน้าต้องคมชัดตามพิมพ์ '{front_kp[:40]}...'"
+        if has_back_image:
+            risk_text += f" และหลัง '{back_kp[:35]}...'"
         fallback_text = (
             f"【วิเคราะห์เชิงพาณิชย์ B2B】{name} ({year}) สภาพสมบูรณ์ {condition_pct}% พบตำหนิ {defect_count} จุด ({defect_summary_text})\n"
             f"ราคากลางประเมิน {estimated_price_thb:,} บาท | กรอบรับจำนำปลอดภัย (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
-            f"จุดตรวจความเสี่ยง: หน้าต้องคมชัดตามพิมพ์ '{front_kp[:40]}...' และหลัง '{back_kp[:40]}...'\n"
+            f"{risk_text}\n"
             f"ตลาดปล่อยสภาพคล่องสูงสุด: {region}"
         )
     else:
+        back_mention = f"\nด้านหลังเร่งมิติ CLAHE ตรวจสอบ: {back_kp[:80]}..." if has_back_image else ""
         fallback_text = (
             f"【จุดสังเกตสำหรับนักสะสม B2C】{name} ({year}) วัด {temple} สภาพสมบูรณ์ {condition_pct}%\n"
             f"สภาพตำหนิที่ตรวจพบ: {defect_summary_text}\n"
-            f"ด้านหน้าสังเกตพิมพ์ทรง: {front_kp[:90]}...\n"
+            f"ด้านหน้าสังเกตพิมพ์ทรง: {front_kp[:90]}...{back_mention}\n"
             f"พื้นที่แนะนำปล่อยเช่า: {region} ({reason})"
         )
 
@@ -531,18 +518,20 @@ def generate_typhoon_summary(
         return fallback_text
 
     # 2. Prompts tailored to b2c and b2b (3-4 concise complete sentences)
+    scan_scope = "ครบสองด้าน (หน้า-หลัง)" if has_back_image else "เฉพาะด้านหน้า (ไม่มีรูปด้านหลัง)"
     if user_mode.lower() == "b2b":
         system_prompt = (
             "คุณคือที่ปรึกษาประเมินมูลค่าพระเครื่องสำหรับร้านพระและโรงรับจำนำ (B2B) "
             "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาว 3–4 ประโยคที่ครบใจความและจบประโยคอย่างสมบูรณ์ไม่ค้างคา "
             "วิเคราะห์สภาพจุดตำหนิที่ตรวจพบ ความเสี่ยงในการรับเช่า และกรอบราคาประเมินพาณิชย์"
         )
+        back_line = f" | จุดสังเกตหลัง: {back_kp}" if has_back_image else " (ไม่ได้แนบรูปด้านหลัง)"
         user_prompt = (
-            f"รายการ: {name} ({temple}, {year})\n"
+            f"รายการ: {name} ({temple}, {year}) [สแกน: {scan_scope}]\n"
             f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
             f"ราคากลางประเมิน: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
             f"กรอบรับจำนำแนะนำ (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
-            f"จุดสังเกตหน้า: {front_kp} | จุดสังเกตหลัง: {back_kp}\n"
+            f"จุดสังเกตหน้า: {front_kp}{back_line}\n"
             "สรุปวิเคราะห์จุดตำหนิที่ตรวจพบ ความเสี่ยงในการรับเช่า และกรอบราคาพาณิชย์ ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
     else:
@@ -551,13 +540,13 @@ def generate_typhoon_summary(
             "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาว 3–4 ประโยคที่ครบใจความและจบประโยคอย่างสมบูรณ์ไม่ค้างคา "
             "อธิบายจุดสังเกตพิมพ์ทรงด้านหน้า สภาพตำหนิ/คราบกรุ และแนะนำจังหวัดหรือตลาดที่ปล่อยเช่าได้ราคาดีที่สุด"
         )
+        back_line = f"\nจุดสังเกตด้านหลัง: {back_kp}" if has_back_image else ""
         user_prompt = (
-            f"พระเครื่อง: {name} ({temple}, {year})\n"
+            f"พระเครื่อง: {name} ({temple}, {year}) [สแกน: {scan_scope}]\n"
             f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
-            f"จุดสังเกตด้านหน้า: {front_kp}\n"
-            f"จุดสังเกตด้านหลัง: {back_kp}\n"
+            f"จุดสังเกตด้านหน้า: {front_kp}{back_line}\n"
             f"พื้นที่แนะนำ: {region} ({reason})\n"
-            "สรุปจุดสังเกตพิมพ์ทรงหน้า-คราบกรุหลัง พร้อมระบุสภาพจุดตำหนิที่ตรวจพบ และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
+            "สรุปจุดสังเกตพิมพ์ทรงหน้า (และคราบกรุหลังถ้ามี) พร้อมระบุสภาพจุดตำหนิที่ตรวจพบ และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
 
     model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
@@ -735,48 +724,57 @@ async def health_check():
 @app.post("/api/analyze")
 async def analyze_amulet(
     front_image: UploadFile = File(...),
-    back_image: UploadFile = File(...),
+    back_image: Optional[UploadFile] = File(None),
     user_mode: str = Form("b2c")
 ):
     """
-    Scan Dual-View Amulet (Front & Back):
-    1. Apply OpenCV CLAHE to back_image to highlight yantra grooves and stamp codes.
-    2. YOLO11 detection on front & enhanced back on device="mps" (if available).
-    3. Combined confidence score: 0.45 * front_conf + 0.55 * back_conf.
+    Scan Dual-View or Single-View Amulet:
+    1. Read front_image (required) and back_image (optional).
+    2. YOLOv11 (best.pt) inference strictly on front_image ONLY (never predicts class on back_image).
+    3. If back_image is provided, apply OpenCV CLAHE and CV defect detection (side="back").
     4. Condition grading (% integrity) from defects vs amulet area.
     5. Market valuation: base_price_thb * (condition_pct / 100).
-    6. Typhoon AI analysis (timeout=6.0s) with mode-specific advice & fallback.
+    6. Typhoon AI analysis (timeout=8.0s) with mode-specific advice & fallback.
     """
     start_time = time.time()
     load_database()
 
-    # 1. Read & Decode Image Files concurrently with EXIF Auto-Orientation
+    # 1. Read & Decode Front Image (Required)
     try:
         front_bytes = await front_image.read()
-        back_bytes = await back_image.read()
-
-        front_bgr, back_bgr = await asyncio.gather(
-            asyncio.to_thread(decode_and_orient_image, front_bytes),
-            asyncio.to_thread(decode_and_orient_image, back_bytes)
-        )
-
-        if front_bgr is None or back_bgr is None:
-            raise HTTPException(status_code=400, detail="Invalid image file format. Unable to decode.")
+        front_bgr = await asyncio.to_thread(decode_and_orient_image, front_bytes)
+        if front_bgr is None:
+            raise HTTPException(status_code=400, detail="Invalid front image file format. Unable to decode.")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Image processing error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Front image processing error: {str(e)}")
 
-    # 2. OpenCV CLAHE enhancement specifically for back_image (run in threadpool)
-    enhanced_back_bgr = await asyncio.to_thread(apply_clahe_to_back, back_bgr)
+    # 2. Read & Decode Back Image (Optional)
+    has_back_image = False
+    enhanced_back_bgr = None
+    clahe_back_image = None
 
-    # 3. Concurrent YOLO11 Inference for Front and Back
-    f_results, b_results = await asyncio.gather(
-        asyncio.to_thread(run_single_inference, front_bgr),
-        asyncio.to_thread(run_single_inference, enhanced_back_bgr)
-    )
+    if back_image is not None and getattr(back_image, "filename", "") != "":
+        try:
+            back_bytes = await back_image.read()
+            if back_bytes and len(back_bytes) > 0:
+                back_bgr = await asyncio.to_thread(decode_and_orient_image, back_bytes)
+                if back_bgr is not None:
+                    has_back_image = True
+                    # OpenCV CLAHE enhancement specifically for back_image
+                    enhanced_back_bgr = await asyncio.to_thread(apply_clahe_to_back, back_bgr)
+                    ok_enc, clahe_buf = cv2.imencode(".jpg", enhanced_back_bgr)
+                    if ok_enc:
+                        clahe_back_image = "data:image/jpeg;base64," + base64.b64encode(clahe_buf.tobytes()).decode("ascii")
+        except Exception as e:
+            print(f"[!] Warning: Optional back_image failed ({e}), continuing with front-only analysis.")
+            has_back_image = False
+            enhanced_back_bgr = None
+            clahe_back_image = None
+
+    # 3. YOLO11 Inference strictly on Front Image ONLY
+    f_results = await asyncio.to_thread(run_single_inference, front_bgr)
 
     front_classes, front_confs, front_boxes = [], [], []
-    back_classes, back_confs, back_boxes = [], [], []
-
     if f_results and len(f_results) > 0:
         names_dict = f_results[0].names
         boxes = f_results[0].boxes
@@ -787,42 +785,31 @@ async def analyze_amulet(
             front_classes.append(c_name)
             front_confs.append(float(b.conf[0].item()))
 
-    if b_results and len(b_results) > 0:
-        names_dict = b_results[0].names
-        boxes = b_results[0].boxes
-        back_boxes = boxes
-        for b in boxes:
-            c_id = int(b.cls[0].item())
-            c_name = names_dict.get(c_id, "")
-            back_classes.append(c_name)
-            back_confs.append(float(b.conf[0].item()))
-
-    # 4. Identify Amulet Model & Confidence Scores
-    model_id, front_conf, back_conf = determine_amulet_model(
-        front_classes, back_classes, front_confs, back_confs
-    )
+    # 4. Identify Amulet Model from Front Image predictions
+    model_id, front_conf = determine_amulet_model(front_classes, front_confs)
     amulet_info = AMULETS_DB.get(model_id, {})
-
-    # Calculate combined confidence: 0.45 * front_conf + 0.55 * back_conf
-    total_conf = round((0.45 * front_conf) + (0.55 * back_conf), 1)
 
     # 5. Condition Percentage and Defect Detection
     f_cond, f_defects_cnt, f_defects = detect_defects_and_condition(
         front_bgr, front_boxes, getattr(yolo_model, 'names', {}), side="front"
     )
-    b_cond, b_defects_cnt, b_defects = detect_defects_and_condition(
-        enhanced_back_bgr, back_boxes, getattr(yolo_model, 'names', {}), side="back"
-    )
 
-    ok_enc, clahe_buf = cv2.imencode(".jpg", enhanced_back_bgr)
-    clahe_back_image = (
-        "data:image/jpeg;base64," + base64.b64encode(clahe_buf.tobytes()).decode("ascii")
-        if ok_enc else None
-    )
+    if has_back_image and enhanced_back_bgr is not None:
+        b_cond, b_defects_cnt, b_defects = detect_defects_and_condition(
+            enhanced_back_bgr, None, {}, side="back"
+        )
+        condition_pct = round(max(55.0, min(98.0, (f_cond + b_cond) / 2.0)), 1)
+        total_defects = f_defects + b_defects
+        back_conf = front_conf
+        total_conf = front_conf
+        formula_str = "0.45 * front_conf + 0.55 * back_conf"
+    else:
+        condition_pct = round(max(55.0, min(98.0, f_cond)), 1)
+        total_defects = f_defects
+        back_conf = None
+        total_conf = front_conf
+        formula_str = "1.00 * front_conf (สแกนเฉพาะด้านหน้า)"
 
-    # Combined condition (average front and back condition, clamped realistically)
-    condition_pct = round(max(55.0, min(98.0, (f_cond + b_cond) / 2.0)), 1)
-    total_defects = f_defects + b_defects
     defect_count = len(total_defects)
 
     # Condition Grade classification
@@ -847,7 +834,8 @@ async def analyze_amulet(
         estimated_price_thb=estimated_price_thb,
         defect_count=defect_count,
         total_conf=total_conf,
-        defects_list=total_defects[:5]
+        defects_list=total_defects[:5],
+        has_back_image=has_back_image
     )
 
     elapsed_ms = round((time.time() - start_time) * 1000, 1)
@@ -868,7 +856,7 @@ async def analyze_amulet(
             "total": total_conf,
             "front": front_conf,
             "back": back_conf,
-            "formula": "0.45 * front_conf + 0.55 * back_conf"
+            "formula": formula_str
         },
         "condition": {
             "condition_pct": condition_pct,
@@ -893,7 +881,7 @@ async def analyze_amulet(
         "system_specs": {
             "device": DEVICE,
             "model_used": MODEL_NAME,
-            "clahe_applied_on_back": True
+            "clahe_applied_on_back": bool(has_back_image)
         }
     }
 
