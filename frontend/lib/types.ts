@@ -42,7 +42,9 @@ export interface AmuletInfo {
 
 export interface AnalyzeResponse {
   success: boolean;
+  is_recognized?: boolean;
   model_id: string;
+  name?: string;
   user_mode: UserMode;
   amulet_info: AmuletInfo;
   confidence: {
@@ -71,6 +73,9 @@ export interface AnalyzeResponse {
   disclaimer: string;
   clahe_back_image?: string | null;
   processing_time_ms?: number;
+  defects?: any[];
+  condition_pct?: number;
+  estimated_price_thb?: number;
   system_specs?: {
     device: string;
     model_used: string;

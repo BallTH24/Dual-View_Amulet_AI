@@ -133,6 +133,108 @@ export default function ResultDashboard({
     showClahe && result.clahe_back_image ? result.clahe_back_image : backPreview;
   const hasBackView = Boolean(displayedBackImage);
 
+  // Strict Recognition Gate check: unrecognized amulet or outside 7 supported models
+  const isUnrecognized =
+    result.is_recognized === false || result.model_id === "unknown";
+
+  if (isUnrecognized) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Strict Recognition Gate Warning Card */}
+        <div className="bg-[#1C1814] rounded-3xl border-2 border-rose-500/50 p-6 sm:p-8 shadow-2xl text-center space-y-5">
+          <div className="w-16 h-16 mx-auto rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-block px-3 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 text-xs font-bold">
+              ด่านคัดกรองพิมพ์พระ (Strict Recognition Gate)
+            </div>
+            <h2 className="font-signature text-2xl sm:text-3xl font-bold text-[#F7E5B8]">
+              ไม่รู้จักวัตถุนี้ หรือไม่อยู่ใน 7 รุ่นพระเครื่องที่ระบบรองรับ
+            </h2>
+            <p className="text-xs sm:text-sm text-[#C7BCAE] max-w-xl mx-auto leading-relaxed">
+              {result.ai_analysis ||
+                "ระบบตรวจสอบแล้วพบว่า ภาพที่อัปโหลดไม่ใช่พระเครื่องใน 7 รุ่นมาตรฐาน หรือภาพไม่ชัดเจน / มีขนาดเล็กเกินไป (< 5% ของภาพ) ระบบจึงปฏิเสธการประเมินราคาและการตรวจจับตำหนิ เพื่อความถูกต้องและเป็นธรรม"}
+            </p>
+          </div>
+
+          {/* Clean Uploaded Image Preview (No defect pins, no price) */}
+          <div className="pt-2">
+            <p className="text-xs text-[#8E8375] mb-3">
+              ภาพที่ส่งตรวจ (ไม่มีการปักหมุดตำหนิและไม่คำนวณราคา):
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {frontPreview && (
+                <div className="w-48 h-64 rounded-2xl bg-[#12100E] border border-white/10 overflow-hidden flex flex-col items-center justify-center p-2">
+                  <span className="text-[11px] text-[#A6998A] mb-1 font-semibold">
+                    ด้านหน้า
+                  </span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={frontPreview}
+                    alt="Front Image"
+                    className="w-full h-52 object-contain rounded-lg"
+                  />
+                </div>
+              )}
+              {backPreview && (
+                <div className="w-48 h-64 rounded-2xl bg-[#12100E] border border-white/10 overflow-hidden flex flex-col items-center justify-center p-2">
+                  <span className="text-[11px] text-[#A6998A] mb-1 font-semibold">
+                    ด้านหลัง
+                  </span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={backPreview}
+                    alt="Back Image"
+                    className="w-full h-52 object-contain rounded-lg"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Supported Models reference list */}
+          <div className="bg-[#12100E] rounded-2xl border border-white/10 p-4 text-left space-y-2">
+            <h4 className="text-xs font-bold text-[#E6B85C]">
+              7 รุ่นพระเครื่องมาตรฐานที่ระบบรองรับในปัจจุบัน:
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {[
+                "1. พระสมเด็จวัดระฆัง",
+                "2. พระสมเด็จบางขุนพรหม",
+                "3. พระสมเด็จเกศไชโย",
+                "4. พระนางพญา",
+                "5. พระผงสุพรรณ",
+                "6. พระรอด",
+                "7. พระซุ้มกอ",
+              ].map((m) => (
+                <span
+                  key={m}
+                  className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-[#C7BCAE]"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Re-scan button */}
+          <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3">
+            <button
+              type="button"
+              onClick={onScanAgain}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] active:scale-[0.98] text-[#18130D] font-bold text-sm shadow-lg transition cursor-pointer touch-manipulation"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>ถ่ายหรืออัปโหลดภาพใหม่</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* 1. Primary Focus: Defect Inspection Photo View with Circles */}
