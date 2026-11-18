@@ -553,20 +553,53 @@ export default function ResultDashboard({
                     <span>
                       {spot.label} ({spot.side === "front" ? "หน้า" : "หลัง"})
                     </span>
-                    {spot.severity === "high" && (
+                    {spot.severity === "high" ? (
                       <span className="text-[10px] px-1.5 py-0.5 bg-rose-500/30 text-rose-300 rounded border border-rose-500/40 font-semibold">
                         ความเสี่ยงสูง
                       </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 font-medium">
+                        ปานกลาง
+                      </span>
                     )}
                     {spot.confidence && (
-                      <span className="text-rose-300">
-                        {spot.confidence.toFixed(0)}%
+                      <span
+                        className="text-[10px] text-rose-300/90 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20"
+                        title="ความชัดเจนในการตรวจจับรอยตำหนิของโมเดล (มิใช่ความสมบูรณ์พระ)"
+                      >
+                        ความชัดรอย {spot.confidence.toFixed(0)}%
                       </span>
                     )}
                   </button>
                 );
               })}
             </div>
+
+            {selectedDefect && (
+              <div className="mt-1 p-2.5 rounded-xl bg-black/40 border border-white/5 text-[11px] text-[#B8AD9E] flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  🔍 จุดที่ {selectedDefect.id}:{" "}
+                  <strong className="text-[#F5EFE6]">{selectedDefect.label}</strong>{" "}
+                  ({selectedDefect.side === "front" ? "ด้านหน้า" : "ด้านหลัง"})
+                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[#8E8375]">
+                    ระดับความเสี่ยง:{" "}
+                    <strong
+                      className={
+                        selectedDefect.severity === "high" ? "text-rose-400" : "text-amber-400"
+                      }
+                    >
+                      {selectedDefect.severity === "high" ? "ความเสี่ยงสูง" : "ปานกลาง"}
+                    </strong>
+                  </span>
+                  <span className="text-rose-300 font-medium bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                    ความชัดเจนรอย:{" "}
+                    {selectedDefect.confidence ? `${selectedDefect.confidence.toFixed(0)}%` : "-"}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -506,9 +506,22 @@ def extract_amulet_silhouette_mask(
     if main_contour is None or contour_area < (crop_area * 0.10):
         return None, None, 0.0
 
-    # Create solid silhouette amulet mask (255 inside amulet, 0 outside)
-    amulet_mask = np.zeros((bh, bw), dtype=np.uint8)
-    cv2.drawContours(amulet_mask, [main_contour], -1, 255, thickness=cv2.FILLED)
+    # Create solid silhouette amulet mask:
+    # 1. Fill main contour to eliminate inner holes and crevices
+    solid_mask = np.zeros((bh, bw), dtype=np.uint8)
+    cv2.drawContours(solid_mask, [main_contour], -1, 255, thickness=cv2.FILLED)
+
+    # 2. Morphological Closing with kernel=(15, 15) to seal deep dark grooves (e.g. bell arch, base)
+    kernel_close_15 = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
+    amulet_mask = cv2.morphologyEx(solid_mask, cv2.MORPH_CLOSE, kernel_close_15, iterations=2)
+
+    # 3. Re-extract smoothed outer contour from the closed solid mask
+    final_contours, _ = cv2.findContours(amulet_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if final_contours:
+        main_contour = max(final_contours, key=cv2.contourArea)
+        contour_area = float(cv2.contourArea(main_contour))
+        # Ensure mask is 100% solid inside the new outer perimeter
+        cv2.drawContours(amulet_mask, [main_contour], -1, 255, thickness=cv2.FILLED)
 
     return amulet_mask, main_contour, contour_area
 
@@ -622,8 +635,11 @@ def detect_defects_and_condition(
 
     # -------------------------------------------------------------
     # B. Edge & Corner Chips (รอยบิ่นขอบและมุมพระ)
-    # Strictly along the contour of amulet_mask
+    # Strictly along the outer perimeter (within 8% of amulet width from outer edge)
     # -------------------------------------------------------------
+    mc_x, mc_y, mc_w, mc_h = cv2.boundingRect(main_contour)
+    max_edge_dist = 0.08 * float(mc_w)  # Max 8% of amulet width from outer boundary
+
     hull = cv2.convexHull(main_contour, returnPoints=False)
     if hull is not None and len(hull) > 3:
         c_defects = cv2.convexityDefects(main_contour, hull)
@@ -640,9 +656,19 @@ def detect_defects_and_condition(
                     if dist_to_contour > 4.0:
                         continue
 
-                    # Near outer edge of bounding box
-                    near_edge = (cx < 0.18 * bw or cx > 0.82 * bw or cy < 0.18 * bh or cy > 0.82 * bh)
-                    if not near_edge:
+                    # Strictly on outer perimeter: within 8% of amulet width from the outer boundary
+                    dist_left = cx - mc_x
+                    dist_right = (mc_x + mc_w) - cx
+                    dist_top = cy - mc_y
+                    dist_bottom = (mc_y + mc_h) - cy
+                    min_dist_to_outer = min(dist_left, dist_right, dist_top, dist_bottom)
+
+                    if min_dist_to_outer > max_edge_dist:
+                        # Inside the amulet (> 8% of width from perimeter, e.g. bell arch, base, or chest), ignore!
+                        continue
+
+                    # Reject if depth is abnormally large (> 12% of amulet width, indicates a large relief curve rather than a chip)
+                    if depth > 0.12 * float(mc_w):
                         continue
 
                     full_x = int(bx1 + cx)
@@ -650,7 +676,9 @@ def detect_defects_and_condition(
                     x_pct = round(float((full_x / max(1, w)) * 100.0), 1)
                     y_pct = round(float((full_y / max(1, h)) * 100.0), 1)
 
-                    is_corner = (cx < 0.22 * bw or cx > 0.78 * bw) and (cy < 0.22 * bh or cy > 0.78 * bh)
+                    is_corner = (dist_left <= 0.12 * mc_w or dist_right <= 0.12 * mc_w) and (
+                        dist_top <= 0.12 * mc_h or dist_bottom <= 0.12 * mc_h
+                    )
                     chip_type = "รอยบิ่นมุมพระ" if is_corner else "รอยบิ่นขอบพิมพ์"
                     severity = "high" if depth >= 22.0 else "medium"
                     conf = round(float(min(96.0, 82.0 + depth * 0.5)), 1)
