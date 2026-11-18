@@ -264,6 +264,11 @@ export default function ResultDashboard({
                     <span>
                       {spot.label} ({spot.side === "front" ? "หน้า" : "หลัง"})
                     </span>
+                    {spot.severity === "high" && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-rose-500/30 text-rose-300 rounded border border-rose-500/40 font-semibold">
+                        ความเสี่ยงสูง
+                      </span>
+                    )}
                     {spot.confidence && (
                       <span className="text-rose-300">
                         {spot.confidence.toFixed(0)}%
@@ -623,76 +628,80 @@ function DefectPhotoFrame({
           </span>
         )}
       </div>
-      <div
-        ref={containerRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        className="relative h-72 rounded-xl bg-[#0B0A08] overflow-hidden flex items-center justify-center select-none"
-      >
-        {imageSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageSrc}
-            alt={title}
-            className={`w-full h-full object-contain transition ${
-              isClahe ? "clahe-preview" : ""
-            }`}
-          />
-        ) : (
-          <span className="text-xs text-[#8E8375]">ไม่มีภาพ</span>
-        )}
-
-        {/* 3x Digital Loupe Lens */}
-        {showLoupe && loupePos && imageSrc && (
-          <div
-            style={{
-              left: `${loupePos.x}px`,
-              top: `${loupePos.y}px`,
-              backgroundImage: `url(${imageSrc})`,
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "320%",
-              backgroundPosition: `${(loupePos.x / (containerRef.current?.offsetWidth || 1)) * 100}% ${(loupePos.y / (containerRef.current?.offsetHeight || 1)) * 100}%`,
-            }}
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-4 border-[#E6B85C] shadow-[0_0_24px_rgba(230,184,92,0.7)] z-30 bg-[#12100E]"
-          >
-            <div className="absolute inset-0 rounded-full border border-white/20 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#E6B85C]" />
+      <div className="rounded-xl bg-[#0B0A08] border border-white/5 overflow-hidden flex items-center justify-center min-h-[19rem] max-h-96 p-2">
+        <div
+          ref={containerRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          className="relative inline-block max-h-80 w-auto select-none"
+        >
+          {imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageSrc}
+              alt={title}
+              className={`max-h-80 w-auto object-contain block mx-auto rounded-lg transition ${
+                isClahe ? "clahe-preview" : ""
+              }`}
+            />
+          ) : (
+            <div className="h-64 w-48 flex items-center justify-center text-xs text-[#8E8375]">
+              ไม่มีภาพ
             </div>
-            <span className="absolute bottom-1 right-2 text-[9px] font-bold text-[#E6B85C] bg-black/80 px-1 rounded">
-              3x
-            </span>
-          </div>
-        )}
+          )}
 
-        {/* Interactive Circular Defect Markers */}
-        {showCircles &&
-          spots.map((spot) => {
-            const isActive = selectedId === spot.id;
-            const size = spot.radiusPx * 2;
-            return (
-              <button
-                key={spot.id}
-                type="button"
-                onClick={() => onSelectSpot(spot.id)}
-                title={spot.label}
-                style={{
-                  left: `${spot.xPct}%`,
-                  top: `${spot.yPct}%`,
-                  width: `${size}px`,
-                  height: `${size}px`,
-                }}
-                className={`defect-ring -translate-x-1/2 -translate-y-1/2 absolute rounded-full border-[3px] flex items-center justify-center transition cursor-pointer ${
-                  isActive
-                    ? "border-rose-400 bg-rose-500/25 shadow-[0_0_16px_rgba(244,63,94,0.8)] scale-110"
-                    : "border-[#E6B85C] bg-[#E6B85C]/15 hover:border-rose-400"
-                }`}
-              >
-                <span className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow">
-                  {spot.id}
-                </span>
-              </button>
-            );
-          })}
+          {/* 3x Digital Loupe Lens */}
+          {showLoupe && loupePos && imageSrc && (
+            <div
+              style={{
+                left: `${loupePos.x}px`,
+                top: `${loupePos.y}px`,
+                backgroundImage: `url(${imageSrc})`,
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "320%",
+                backgroundPosition: `${(loupePos.x / (containerRef.current?.offsetWidth || 1)) * 100}% ${(loupePos.y / (containerRef.current?.offsetHeight || 1)) * 100}%`,
+              }}
+              className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-4 border-[#E6B85C] shadow-[0_0_24px_rgba(230,184,92,0.7)] z-30 bg-[#12100E]"
+            >
+              <div className="absolute inset-0 rounded-full border border-white/20 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#E6B85C]" />
+              </div>
+              <span className="absolute bottom-1 right-2 text-[9px] font-bold text-[#E6B85C] bg-black/80 px-1 rounded">
+                3x
+              </span>
+            </div>
+          )}
+
+          {/* Interactive Circular Defect Markers */}
+          {showCircles &&
+            spots.map((spot) => {
+              const isActive = selectedId === spot.id;
+              const size = spot.radiusPx * 2;
+              return (
+                <button
+                  key={spot.id}
+                  type="button"
+                  onClick={() => onSelectSpot(spot.id)}
+                  title={`${spot.label} (${spot.side === "front" ? "ด้านหน้า" : "ด้านหลัง"})`}
+                  style={{
+                    left: `${spot.xPct}%`,
+                    top: `${spot.yPct}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                  }}
+                  className={`defect-ring -translate-x-1/2 -translate-y-1/2 absolute rounded-full border-[3px] flex items-center justify-center transition cursor-pointer z-20 ${
+                    isActive
+                      ? "border-rose-400 bg-rose-500/25 shadow-[0_0_16px_rgba(244,63,94,0.8)] scale-110"
+                      : "border-[#E6B85C] bg-[#E6B85C]/15 hover:border-rose-400"
+                  }`}
+                >
+                  <span className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow">
+                    {spot.id}
+                  </span>
+                </button>
+              );
+            })}
+        </div>
       </div>
     </div>
   );

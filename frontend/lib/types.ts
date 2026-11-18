@@ -13,11 +13,13 @@ export interface DefectSpot {
   label: string;
   confidence?: number;
   areaPct?: number;
+  severity?: "high" | "medium" | string;
 }
 
 export interface DefectDetailRaw {
   side?: "front" | "back";
   type: string;
+  severity?: "high" | "medium" | string;
   bbox?: number[];
   x_pct?: number;
   y_pct?: number;

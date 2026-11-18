@@ -518,10 +518,11 @@ export function extractDefectSpots(res: AnalyzeResponse): DefectSpot[] {
       side: d.side || (idx % 2 === 0 ? "front" : "back"),
       xPct: d.x_pct ?? 35 + ((idx * 17) % 35),
       yPct: d.y_pct ?? 35 + ((idx * 23) % 35),
-      radiusPx: 24,
+      radiusPx: d.severity === "high" ? 26 : 20,
       label: d.type,
       confidence: d.confidence,
       areaPct: d.area_pct,
+      severity: d.severity,
     }));
   }
   const count = Math.min(res.condition.defect_count, 4);

@@ -198,14 +198,15 @@ def detect_defects_and_condition(
     side: str = "front"
 ) -> tuple[float, int, List[Dict[str, Any]]]:
     """
-    Calculates condition percentage (50-100%) and defect bounding boxes.
-    Uses YOLO defect class if present; otherwise performs computer-vision edge/contrast
-    defect detection on the amulet surface.
+    Upgraded Defect Detection & Condition Grading:
+    1. Analyzes strictly within the YOLO amulet bounding box (cutting outer background noise).
+    2. Detects Internal Pits & Chips (หลุม/รอยกะเทาะเนื้อหาย) via Grayscale/LAB L-channel adaptive thresholding & void detection.
+    3. Detects Edge & Corner Chips (รอยบิ่นขอบและมุมพระ) along perimeter via cv2.convexHull and cv2.convexityDefects.
+    4. Deduplicates spots within 6% Euclidean distance and returns up to 5 most severe defect spots with Thai labels.
+    5. Calculates realistic condition_pct (starting at ~98% and deducting 4.5-7.0% per defect, never stuck at 100%).
     """
     h, w = image_bgr.shape[:2]
-    total_amulet_area = float(h * w * 0.70)
     detected_defects = []
-    total_defect_area = 0.0
 
     # 1. Check if YOLO output contains custom 'defect' class
     if yolo_boxes is not None and len(yolo_boxes) > 0:
@@ -220,54 +221,199 @@ def detect_defects_and_condition(
                 detected_defects.append({
                     "side": side,
                     "type": "ตอก/แตกลายงา/สึกหรอ",
+                    "severity": "high" if area > (h * w * 0.01) else "medium",
                     "bbox": [bx1, by1, bx2, by2],
                     "x_pct": round(((bx1 + bx2) / 2.0) / max(1, w) * 100.0, 1),
                     "y_pct": round(((by1 + by2) / 2.0) / max(1, h) * 100.0, 1),
                     "confidence": round(conf * 100, 1),
-                    "area_pct": round((area / total_amulet_area) * 100, 2)
+                    "area_pct": round((area / (h * w)) * 100, 2),
+                    "score": float(area)
                 })
-                total_defect_area += area
 
-    # 2. Fallback / Computer Vision detection for surface wear & chips if no YOLO defects detected
+    # 2. Advanced Computer Vision Analysis inside YOLO Bounding Box
     if len(detected_defects) == 0:
-        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        # Gradient / Lapalacian variance to find wear and micro cracks
-        lap = cv2.Laplacian(blurred, cv2.CV_64F)
-        lap_abs = np.uint8(np.absolute(lap))
-        _, thresh = cv2.threshold(lap_abs, 35, 255, cv2.THRESH_BINARY)
+        # Locate the amulet bounding box from YOLO detection
+        amulet_box = None
+        if yolo_boxes is not None and len(yolo_boxes) > 0:
+            # Pick the box with highest confidence representing the amulet
+            best_box = max(
+                yolo_boxes,
+                key=lambda b: float(b.conf[0].item()) if hasattr(b, 'conf') else 0.0
+            )
+            amulet_box = [int(v) for v in best_box.xyxy[0].tolist()]
+
+        if amulet_box is None or (amulet_box[2] - amulet_box[0] < 30) or (amulet_box[3] - amulet_box[1] < 30):
+            bx1, by1, bx2, by2 = int(w * 0.05), int(h * 0.05), int(w * 0.95), int(h * 0.95)
+        else:
+            bx1 = max(0, amulet_box[0])
+            by1 = max(0, amulet_box[1])
+            bx2 = min(w, amulet_box[2])
+            by2 = min(h, amulet_box[3])
+
+        bw = max(1, bx2 - bx1)
+        bh = max(1, by2 - by1)
+        crop = image_bgr[by1:by2, bx1:bx2]
+        crop_area = float(bw * bh)
+
+        # Color conversions
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        lab = cv2.cvtColor(crop, cv2.COLOR_BGR2LAB)
+        l_chan = lab[:, :, 0]
+
+        # Segmentation of the amulet body
+        blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+        _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+        # If background is bright (white paper / light surface), invert threshold
+        border_pixels = np.concatenate([
+            crop[:min(10, bh), :].ravel(),
+            crop[max(0, bh - 10):, :].ravel(),
+            crop[:, :min(10, bw)].ravel(),
+            crop[:, max(0, bw - 10):].ravel()
+        ])
+        if np.mean(border_pixels) > 135:
+            thresh = cv2.bitwise_not(thresh)
 
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        # Select significant blemishes (filtered by size)
-        min_defect_area = (h * w) * 0.001
-        max_defect_area = (h * w) * 0.04
+        main_contour = max(contours, key=cv2.contourArea) if contours else None
+        amulet_area = float(cv2.contourArea(main_contour)) if main_contour is not None else float(crop_area * 0.70)
 
-        for c in contours:
-            c_area = cv2.contourArea(c)
-            if min_defect_area < c_area < max_defect_area:
-                x, y, bw, bh = cv2.boundingRect(c)
-                # Keep inside central amulet region
-                if 0.1 * w < x < 0.9 * w and 0.1 * h < y < 0.9 * h:
-                    detected_defects.append({
+        raw_candidates = []
+
+        # A. Internal Pits & Chips Detection (หลุม/รอยกะเทาะเนื้อหาย)
+        if main_contour is not None and amulet_area > (crop_area * 0.15):
+            amulet_filled = np.zeros((bh, bw), dtype=np.uint8)
+            cv2.drawContours(amulet_filled, [main_contour], -1, 255, thickness=cv2.FILLED)
+
+            kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+            inner_mask = cv2.erode(amulet_filled, kernel_erode, iterations=1)
+
+            body_pixels = l_chan[inner_mask == 255]
+            if len(body_pixels) > 50:
+                mean_l = float(np.mean(body_pixels))
+                std_l = float(np.std(body_pixels))
+            else:
+                mean_l, std_l = 128.0, 35.0
+
+            # Find deep voids or dark recessed pits
+            pit_mask = np.zeros((bh, bw), dtype=np.uint8)
+            pit_mask[(inner_mask == 255) & ((thresh == 0) | (l_chan < max(12, mean_l - 1.2 * std_l)))] = 255
+
+            kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            pit_mask_clean = cv2.morphologyEx(pit_mask, cv2.MORPH_OPEN, kernel_open)
+
+            pit_contours, _ = cv2.findContours(pit_mask_clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            min_pit_area = amulet_area * 0.0015
+            max_pit_area = amulet_area * 0.08
+
+            for c in pit_contours:
+                c_area = float(cv2.contourArea(c))
+                if min_pit_area <= c_area <= max_pit_area:
+                    M = cv2.moments(c)
+                    if M["m00"] > 0:
+                        cx = int(M["m10"] / M["m00"])
+                        cy = int(M["m01"] / M["m00"])
+                    else:
+                        x, y, cw, ch = cv2.boundingRect(c)
+                        cx, cy = int(x + cw // 2), int(y + ch // 2)
+
+                    full_x = int(bx1 + cx)
+                    full_y = int(by1 + cy)
+                    x_pct = round(float((full_x / max(1, w)) * 100.0), 1)
+                    y_pct = round(float((full_y / max(1, h)) * 100.0), 1)
+                    area_pct = round(float((c_area / amulet_area) * 100.0), 2)
+
+                    severity = "high" if c_area > (amulet_area * 0.008) else "medium"
+                    conf = round(float(min(98.0, 85.0 + area_pct * 3.5)), 1)
+                    raw_candidates.append({
                         "side": side,
-                        "type": "รอยสึกหรอสัมผัส / รอยกร่อนผิว",
-                        "bbox": [int(x), int(y), int(x + bw), int(y + bh)],
-                        "x_pct": round(((x + bw / 2.0) / max(1, w)) * 100.0, 1),
-                        "y_pct": round(((y + bh / 2.0) / max(1, h)) * 100.0, 1),
-                        "confidence": round(82.0 + (hash(str((x, y))) % 150) / 10.0, 1),
-                        "area_pct": round((c_area / total_amulet_area) * 100, 2)
+                        "type": "รอยกะเทาะ/หลุมลึก",
+                        "severity": severity,
+                        "confidence": conf,
+                        "bbox": [int(full_x - 12), int(full_y - 12), int(full_x + 12), int(full_y + 12)],
+                        "x_pct": x_pct,
+                        "y_pct": y_pct,
+                        "area_pct": area_pct,
+                        "score": float((c_area / amulet_area) * 100.0)
                     })
-                    total_defect_area += c_area
-                    if len(detected_defects) >= 4:
-                        break
 
+            # B. Edge & Corner Chips (รอยบิ่นขอบและมุมพระ)
+            hull = cv2.convexHull(main_contour, returnPoints=False)
+            if hull is not None and len(hull) > 3:
+                c_defects = cv2.convexityDefects(main_contour, hull)
+                if c_defects is not None:
+                    c_defects_reshaped = c_defects.reshape(-1, 4)
+                    for s, e, f, d in c_defects_reshaped:
+                        depth = float(d) / 256.0
+                        if depth >= 11.0:  # threshold depth in pixels
+                            far_pt = tuple(main_contour[f][0])
+                            cx, cy = int(far_pt[0]), int(far_pt[1])
+
+                            # Must be along the outer perimeter of the amulet crop
+                            near_edge = (cx < 0.15 * bw or cx > 0.85 * bw or cy < 0.15 * bh or cy > 0.85 * bh)
+                            if not near_edge:
+                                continue
+
+                            full_x = int(bx1 + cx)
+                            full_y = int(by1 + cy)
+                            x_pct = round(float((full_x / max(1, w)) * 100.0), 1)
+                            y_pct = round(float((full_y / max(1, h)) * 100.0), 1)
+
+                            # Distinguish corner chips from side edge chips
+                            is_corner = (cx < 0.20 * bw or cx > 0.80 * bw) and (cy < 0.20 * bh or cy > 0.80 * bh)
+                            chip_type = "รอยบิ่นมุมพระ" if is_corner else "รอยบิ่นขอบพิมพ์"
+                            severity = "high" if depth >= 22.0 else "medium"
+                            conf = round(float(min(96.0, 82.0 + depth * 0.5)), 1)
+                            area_pct = round(float((depth / max(bw, bh)) * 100.0), 2)
+                            raw_candidates.append({
+                                "side": side,
+                                "type": chip_type,
+                                "severity": severity,
+                                "confidence": conf,
+                                "bbox": [int(full_x - 12), int(full_y - 12), int(full_x + 12), int(full_y + 12)],
+                                "x_pct": x_pct,
+                                "y_pct": y_pct,
+                                "area_pct": area_pct,
+                                "score": float((depth / max(bw, bh)) * 100.0)
+                            })
+
+        # Deduplicate points within 6.0% Euclidean distance
+        deduped = []
+        for d in sorted(raw_candidates, key=lambda x: (x["severity"] == "high", x["score"]), reverse=True):
+            too_close = False
+            for existing in deduped:
+                dist = np.hypot(d["x_pct"] - existing["x_pct"], d["y_pct"] - existing["y_pct"])
+                if dist < 6.0:
+                    too_close = True
+                    break
+            if not too_close:
+                deduped.append(d)
+
+        detected_defects = []
+        for d in deduped[:5]:
+            detected_defects.append({
+                "side": str(d["side"]),
+                "type": str(d["type"]),
+                "severity": str(d["severity"]),
+                "confidence": float(d["confidence"]),
+                "bbox": [int(v) for v in d["bbox"]],
+                "x_pct": float(d["x_pct"]),
+                "y_pct": float(d["y_pct"]),
+                "area_pct": float(d["area_pct"])
+            })
+
+    # Calculate condition percentage
+    base_condition = 98.0
+    total_deductions = 0.0
+    for d in detected_defects:
+        if d.get("severity") == "high":
+            total_deductions += 7.0
+        else:
+            total_deductions += 4.5
+
+    condition_pct = round(max(55.0, min(98.0, base_condition - total_deductions)), 1)
     defect_count = len(detected_defects)
-    # Area ratio penalty
-    defect_ratio = total_defect_area / max(1.0, total_amulet_area)
-    penalty = (defect_ratio * 100.0 * 2.2) + (defect_count * 2.5)
-
-    # Condition clamped between 50.0% and 100.0%
-    condition_pct = round(max(50.0, min(100.0, 100.0 - penalty)), 1)
 
     return condition_pct, defect_count, detected_defects
 
@@ -333,12 +479,13 @@ def generate_typhoon_summary(
     condition_pct: float,
     estimated_price_thb: int,
     defect_count: int,
-    total_conf: float
+    total_conf: float,
+    defects_list: Optional[List[Dict[str, Any]]] = None
 ) -> str:
     """
-    Calls Typhoon LLM (OpenAI-compatible) with 6.0-second timeout.
+    Calls Typhoon LLM (OpenAI-compatible) with 8.0-second timeout.
     Answers in Thai, concise, direct to the point, max 3-4 lines:
-    - b2c: explains front mold keypoints, back yantra/kraap-gru, and recommends best province/market.
+    - b2c: explains front mold keypoints, back yantra/kraap-gru, defect locations, and recommends best province/market.
     - b2b: analyzes defect spots, pawn/holding risk, and commercial valuation margin.
     Falls back gracefully to rich JSON-derived text if key is missing or call fails.
     """
@@ -351,10 +498,22 @@ def generate_typhoon_summary(
     reason = amulet.get("region_reason", "")
     base_price = amulet.get("base_price_thb", 0)
 
+    # Format detected defects detail for LLM context
+    defect_items = []
+    if defects_list:
+        for idx, d in enumerate(defects_list[:5], 1):
+            s_name = "ด้านหน้า" if d.get("side") == "front" else "ด้านหลัง"
+            t_name = d.get("type", "จุดตำหนิ")
+            x_p = d.get("x_pct", 0)
+            y_p = d.get("y_pct", 0)
+            sev = "รุนแรงสูง" if d.get("severity") == "high" else "ปานกลาง"
+            defect_items.append(f"{idx}) {t_name} ({s_name} พิกัด X:{x_p}%, Y:{y_p}%, {sev})")
+    defect_summary_text = " | ".join(defect_items) if defect_items else "ไม่พบจุดตำหนิรุนแรง ผิวพระสมบูรณ์ตามอายุ"
+
     # 1. Fallback text (concise 3-4 lines)
     if user_mode.lower() == "b2b":
         fallback_text = (
-            f"【วิเคราะห์เชิงพาณิชย์ B2B】{name} ({year}) สภาพสมบูรณ์ {condition_pct}% พบตำหนิ {defect_count} จุด\n"
+            f"【วิเคราะห์เชิงพาณิชย์ B2B】{name} ({year}) สภาพสมบูรณ์ {condition_pct}% พบตำหนิ {defect_count} จุด ({defect_summary_text})\n"
             f"ราคากลางประเมิน {estimated_price_thb:,} บาท | กรอบรับจำนำปลอดภัย (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
             f"จุดตรวจความเสี่ยง: หน้าต้องคมชัดตามพิมพ์ '{front_kp[:40]}...' และหลัง '{back_kp[:40]}...'\n"
             f"ตลาดปล่อยสภาพคล่องสูงสุด: {region}"
@@ -362,8 +521,8 @@ def generate_typhoon_summary(
     else:
         fallback_text = (
             f"【จุดสังเกตสำหรับนักสะสม B2C】{name} ({year}) วัด {temple} สภาพสมบูรณ์ {condition_pct}%\n"
+            f"สภาพตำหนิที่ตรวจพบ: {defect_summary_text}\n"
             f"ด้านหน้าสังเกตพิมพ์ทรง: {front_kp[:90]}...\n"
-            f"ด้านหลังเร่งมิติ CLAHE ตรวจสอบ: {back_kp[:90]}...\n"
             f"พื้นที่แนะนำปล่อยเช่า: {region} ({reason})"
         )
 
@@ -376,28 +535,29 @@ def generate_typhoon_summary(
         system_prompt = (
             "คุณคือที่ปรึกษาประเมินมูลค่าพระเครื่องสำหรับร้านพระและโรงรับจำนำ (B2B) "
             "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาว 3–4 ประโยคที่ครบใจความและจบประโยคอย่างสมบูรณ์ไม่ค้างคา "
-            "วิเคราะห์สภาพจุดตำหนิ ความเสี่ยงในการรับเช่า และกรอบราคาประเมินพาณิชย์"
+            "วิเคราะห์สภาพจุดตำหนิที่ตรวจพบ ความเสี่ยงในการรับเช่า และกรอบราคาประเมินพาณิชย์"
         )
         user_prompt = (
             f"รายการ: {name} ({temple}, {year})\n"
-            f"สภาพความสมบูรณ์: {condition_pct}% (พบตำหนิ {defect_count} จุด) | ราคากลาง: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
+            f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
+            f"ราคากลางประเมิน: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
             f"กรอบรับจำนำแนะนำ (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
             f"จุดสังเกตหน้า: {front_kp} | จุดสังเกตหลัง: {back_kp}\n"
-            "สรุปวิเคราะห์จุดตำหนิ ความเสี่ยง และกรอบราคาพาณิชย์ ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
+            "สรุปวิเคราะห์จุดตำหนิที่ตรวจพบ ความเสี่ยงในการรับเช่า และกรอบราคาพาณิชย์ ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
     else:
         system_prompt = (
             "คุณคือผู้เชี่ยวชาญพระเครื่องไทยสำหรับนักสะสมทั่วไป (B2C) "
             "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาว 3–4 ประโยคที่ครบใจความและจบประโยคอย่างสมบูรณ์ไม่ค้างคา "
-            "อธิบายจุดสังเกตพิมพ์ทรงด้านหน้า คราบกรุ/มิติยันต์ด้านหลัง และแนะนำจังหวัดหรือตลาดที่ปล่อยเช่าได้ราคาดีที่สุด"
+            "อธิบายจุดสังเกตพิมพ์ทรงด้านหน้า สภาพตำหนิ/คราบกรุ และแนะนำจังหวัดหรือตลาดที่ปล่อยเช่าได้ราคาดีที่สุด"
         )
         user_prompt = (
             f"พระเครื่อง: {name} ({temple}, {year})\n"
-            f"สภาพความสมบูรณ์: {condition_pct}%\n"
+            f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
             f"จุดสังเกตด้านหน้า: {front_kp}\n"
             f"จุดสังเกตด้านหลัง: {back_kp}\n"
             f"พื้นที่แนะนำ: {region} ({reason})\n"
-            "สรุปจุดสังเกตพิมพ์ทรงหน้า-คราบกรุหลัง และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
+            "สรุปจุดสังเกตพิมพ์ทรงหน้า-คราบกรุหลัง พร้อมระบุสภาพจุดตำหนิที่ตรวจพบ และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
 
     model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
@@ -660,8 +820,8 @@ async def analyze_amulet(
         if ok_enc else None
     )
 
-    # Combined condition (average front and back condition)
-    condition_pct = round(max(50.0, min(100.0, (f_cond + b_cond) / 2.0)), 1)
+    # Combined condition (average front and back condition, clamped realistically)
+    condition_pct = round(max(55.0, min(98.0, (f_cond + b_cond) / 2.0)), 1)
     total_defects = f_defects + b_defects
     defect_count = len(total_defects)
 
@@ -679,14 +839,15 @@ async def analyze_amulet(
     base_price_thb = int(amulet_info.get("base_price_thb", 100000))
     estimated_price_thb = int(base_price_thb * (condition_pct / 100.0))
 
-    # 7. Typhoon API Summary (6.0s timeout with fallback)
+    # 7. Typhoon API Summary (8.0s timeout with fallback & defect locations injected)
     ai_summary = generate_typhoon_summary(
         amulet=amulet_info,
         user_mode=user_mode,
         condition_pct=condition_pct,
         estimated_price_thb=estimated_price_thb,
         defect_count=defect_count,
-        total_conf=total_conf
+        total_conf=total_conf,
+        defects_list=total_defects[:5]
     )
 
     elapsed_ms = round((time.time() - start_time) * 1000, 1)
