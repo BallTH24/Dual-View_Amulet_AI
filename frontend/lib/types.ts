@@ -12,12 +12,22 @@ export interface AmbiguityWarning {
   expert_advice: string;
 }
 
+export type TrustTier = "tier_1" | "tier_2" | "unverified_metadata" | "flagged";
+
 export interface ImageProvenance {
-  trust_tier: "tier_1" | "tier_2" | "flagged";
+  trust_tier: TrustTier;
   label: string;
   detected_software: string | null;
   warning: string | null;
   capture_source?: "camera" | "upload";
+  has_camera_hardware?: boolean;
+  forensics_notes?: string[];
+  metrics?: {
+    ela_max?: number;
+    ela_median?: number;
+    noise_std?: number;
+    zero_noise_ratio?: number;
+  };
 }
 
 export interface DefectSpot {
@@ -115,9 +125,10 @@ export interface VaultItem {
   defect_count: number;
   front_thumbnail: string; // Base64 downscaled (< 400px)
   back_thumbnail?: string | null;
-  trust_tier: "tier_1" | "tier_2" | "flagged";
+  trust_tier: TrustTier;
   trust_label: string;
   detected_software?: string | null;
+  forensics_notes?: string[];
   ambiguity_warning?: AmbiguityWarning | null;
   analyze_response: AnalyzeResponse;
 }

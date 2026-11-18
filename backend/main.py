@@ -159,63 +159,229 @@ MIN_RECOGNITION_CONF = 0.68  # Strict recognition gate for YOLOv11 (best.pt) cal
 
 def inspect_image_provenance(image_bytes: bytes, capture_source: str = "upload") -> Dict[str, Any]:
     """
-    Image Provenance & EXIF Forensics:
-    - Inspects EXIF metadata for editing software (Photoshop, Snapseed, Lightroom, GIMP, Meitu, Canva, etc.)
-    - Assigns Trust Tier:
-      * tier_1: Live camera capture with clean EXIF (🛡️ Live Camera Verified)
-      * tier_2: Standard file upload with clean EXIF (📁 Standard Upload)
-      * flagged: Edited / synthetic software detected in EXIF (⚠️ Edited Photo Detected)
+    Image Provenance & AI Forensics (3 Dimensions):
+    1. Deep Metadata & AI Signature Scan:
+       - Raw bytes substring search for AI models (Midjourney, DALL-E, Stable Diffusion, ComfyUI, Imagen, Firefly, NovelAI, trainedAlgorithmicMedia, c2pa)
+         and photo editing tools (Photoshop, Lightroom, Snapseed, Remini, Meitu, PicsArt, Canva, FaceTune, Pixlr, Fotor, GIMP, VSCO, Affinity, Pixelmator, Procreate)
+       - PIL img.info chunk inspection (PNG/WebP/JPEG comments, prompts, parameters)
+       - EXIF tags inspection (Software, ProcessingSoftware, ImageDescription, UserComment, Artist, XPComment, XPKeywords)
+       - Camera Hardware Fingerprint:
+         Checks for physical camera tags (Make, Model, ISOSpeedRatings, PhotographicSensitivity, FNumber, ExposureTime, FocalLength, LensModel)
+    2. Error Level Analysis (ELA):
+       - Recompresses image in-memory at JPEG Q90 and computes cv2.absdiff
+       - Divides image into 8x8 block grid, computes mean ELA per block
+       - Calculates max_block_ela and median_block_ela
+       - Flags anomaly if max_block_ela > max(18.0, median_block_ela * 3.2) (suspected localized defect removal or tampering)
+    3. Sensor Noise Residual:
+       - Extracts high-frequency residual: noise = cv2.absdiff(gray, cv2.medianBlur(gray, 3))
+       - Computes noise_std = std(noise) and zero_noise_ratio = mean(noise == 0)
+       - Flags synthetic image if not has_camera_hardware and (noise_std < 1.35 or zero_noise_ratio > 0.68)
+
+    Trust Tiers:
+    - flagged: Triggered by AI signature / editing app OR ELA anomaly OR synthetic noise.
+      label: "Forensics Warning: ตรวจพบสัญญาณภาพ AI หรือการดัดแปลงพิกเซล"
+    - unverified_metadata: No pixel anomalies, but lacks camera hardware tags (e.g. web/messaging download).
+      label: "Warning: ไม่พบข้อมูลฮาร์ดแวร์กล้อง (อาจผ่านการเซฟซ้ำหรือตกแต่ง)"
+    - tier_1: capture_source == "camera" and clean pixels.
+      label: "Tier 1: Live-Capture Verified"
+    - tier_2: capture_source == "upload" with camera hardware tags and clean pixels.
+      label: "Tier 2: Authentic Camera File"
     """
-    flagged_software = None
-    known_editing_tools = [
-        "photoshop", "snapseed", "lightroom", "gimp", "meitu",
-        "canva", "picsart", "vsco", "facetune", "pixlr",
-        "fotor", "midjourney", "stable diffusion", "dall-e",
-        "affinity", "pixelmator", "procreate", "adobe"
+    detected_software: Optional[str] = None
+    has_camera_hardware: bool = False
+    camera_device: str = ""
+
+    ai_signatures = [
+        b"trainedalgorithmicmedia", b"c2pa", b"midjourney", b"dall-e",
+        b"stable diffusion", b"stablediffusion", b"comfyui", b"imagen",
+        b"firefly", b"novelai"
     ]
+    editing_signatures = [
+        b"photoshop", b"lightroom", b"snapseed", b"remini", b"meitu",
+        b"picsart", b"canva", b"facetune", b"pixlr", b"fotor",
+        b"gimp", b"vsco", b"affinity", b"pixelmator", b"procreate"
+    ]
+
+    # --- Dimension 1A: Raw Bytes Search ---
+    bytes_lower = image_bytes.lower()
+    for sig in ai_signatures:
+        if sig in bytes_lower:
+            detected_software = f"AI Signature ({sig.decode('ascii', errors='ignore')})"
+            break
+    if not detected_software:
+        for sig in editing_signatures:
+            if sig in bytes_lower:
+                detected_software = f"Software Metadata ({sig.decode('ascii', errors='ignore')})"
+                break
+
+    # --- Dimension 1B: PIL Info & EXIF Metadata ---
     try:
         with Image.open(io.BytesIO(image_bytes)) as pil_img:
+            # Check img.info (PNG/WebP text chunks, prompts, parameters)
+            if hasattr(pil_img, "info") and isinstance(pil_img.info, dict):
+                for k, v in pil_img.info.items():
+                    k_str = str(k).lower()
+                    v_str = str(v).lower()
+                    for sig in ["parameters", "prompt", "workflow", "comfyui", "midjourney", "stablediffusion", "novelai"]:
+                        if sig in k_str or sig in v_str:
+                            if not detected_software:
+                                detected_software = f"AI Generation Info ({sig})"
+                            break
+                    if detected_software:
+                        break
+
+            # Check EXIF
             exif_data = pil_img._getexif()
             if exif_data:
+                exif_named = {}
                 for tag_id, value in exif_data.items():
                     tag_name = ExifTags.TAGS.get(tag_id, str(tag_id))
-                    if tag_name in ["Software", "ProcessingSoftware", "ImageDescription", "UserComment", "Artist"]:
-                        val_str = str(value).lower()
-                        for tool in known_editing_tools:
+                    exif_named[tag_name] = value
+
+                # Camera Hardware Fingerprint
+                hardware_tags = [
+                    "Make", "Model", "ISOSpeedRatings", "PhotographicSensitivity",
+                    "FNumber", "ExposureTime", "FocalLength", "LensModel"
+                ]
+                has_camera_hardware = any(tag in exif_named for tag in hardware_tags)
+                if "Make" in exif_named or "Model" in exif_named:
+                    m = str(exif_named.get("Make", "")).strip()
+                    md = str(exif_named.get("Model", "")).strip()
+                    camera_device = f"{m} {md}".strip()
+
+                # Check editing/AI software in EXIF tags
+                software_fields = ["Software", "ProcessingSoftware", "ImageDescription", "UserComment", "Artist", "XPComment"]
+                for fld in software_fields:
+                    if fld in exif_named:
+                        val_str = str(exif_named[fld]).lower()
+                        for tool in [
+                            "photoshop", "snapseed", "lightroom", "gimp", "meitu",
+                            "canva", "picsart", "vsco", "facetune", "pixlr",
+                            "fotor", "midjourney", "stable diffusion", "dall-e",
+                            "remini", "affinity", "pixelmator", "procreate", "adobe"
+                        ]:
                             if tool in val_str:
-                                flagged_software = str(value).strip()
+                                detected_software = str(exif_named[fld]).strip()
                                 break
-                    if flagged_software:
+                    if detected_software:
                         break
     except Exception as e:
-        print(f"[*] EXIF forensics note: {e}")
+        print(f"[*] Metadata scan note: {e}")
+
+    # --- Dimensions 2 & 3: Pixel-Level Forensics (ELA & Sensor Noise Residual) ---
+    max_block_ela = 0.0
+    median_block_ela = 0.0
+    ela_threshold = 18.0
+    is_ela_anomaly = False
+
+    noise_std = 0.0
+    zero_noise_ratio = 0.0
+    is_synthetic_noise = False
+
+    try:
+        img_arr = np.frombuffer(image_bytes, np.uint8)
+        img_bgr = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
+        if img_bgr is not None and img_bgr.size > 0:
+            # Dimension 2: Error Level Analysis (ELA)
+            ok_enc, enc_buf = cv2.imencode(".jpg", img_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+            if ok_enc:
+                recompressed = cv2.imdecode(enc_buf, cv2.IMREAD_COLOR)
+                diff = cv2.absdiff(img_bgr, recompressed)
+                diff_gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY).astype(np.float32)
+
+                h, w = diff_gray.shape
+                block_h = max(1, h // 8)
+                block_w = max(1, w // 8)
+                block_means = []
+                for r in range(8):
+                    for c in range(8):
+                        r_start = r * block_h
+                        r_end = (r + 1) * block_h if r < 7 else h
+                        c_start = c * block_w
+                        c_end = (c + 1) * block_w if c < 7 else w
+                        tile = diff_gray[r_start:r_end, c_start:c_end]
+                        if tile.size > 0:
+                            block_means.append(float(np.mean(tile)))
+
+                if block_means:
+                    max_block_ela = round(float(np.max(block_means)), 2)
+                    median_block_ela = round(float(np.median(block_means)), 2)
+                    ela_threshold = round(max(18.0, median_block_ela * 3.2), 2)
+                    if max_block_ela > ela_threshold:
+                        is_ela_anomaly = True
+
+            # Dimension 3: Sensor Noise Residual
+            gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+            blurred = cv2.medianBlur(gray, 3)
+            noise = cv2.absdiff(gray, blurred)
+            noise_std = round(float(np.std(noise)), 2)
+            zero_noise_ratio = round(float(np.mean(noise == 0)), 3)
+            if (not has_camera_hardware) and (noise_std < 1.35 or zero_noise_ratio > 0.68):
+                is_synthetic_noise = True
+    except Exception as e:
+        print(f"[*] Pixel forensics error: {e}")
 
     norm_source = "camera" if capture_source and "cam" in capture_source.lower() else "upload"
+    forensics_notes: List[str] = []
 
-    if flagged_software:
-        return {
-            "trust_tier": "flagged",
-            "label": "⚠️ Edited Photo Detected",
-            "detected_software": flagged_software,
-            "warning": f"ตรวจพบร่องรอยการบันทึก/ตกแต่งผ่านซอฟต์แวร์ ({flagged_software}) อาจส่งผลต่อการตรวจจับตำหนิและสีผิวพระ",
-            "capture_source": norm_source
-        }
+    if detected_software:
+        forensics_notes.append(f"ตรวจพบร่องรอยซอฟต์แวร์/AI: {detected_software}")
+    if is_ela_anomaly:
+        forensics_notes.append(
+            f"ตรวจพบความผิดปกติของชั้นการบีบอัด ELA (Max block: {max_block_ela} > เกณฑ์ {ela_threshold}) สงสัยการตกแต่งลบตำหนิเฉพาะจุด"
+        )
+    if is_synthetic_noise:
+        forensics_notes.append(
+            f"ตรวจพบลักษณะสัญญาณรบกวนต่ำผิดปกติ คล้ายภาพสังเคราะห์ AI (Zero-noise: {round(zero_noise_ratio * 100, 1)}%, Noise STD: {noise_std})"
+        )
+
+    # Trust Tier Decision
+    if detected_software or is_ela_anomaly or is_synthetic_noise:
+        trust_tier = "flagged"
+        label = "Forensics Warning: ตรวจพบสัญญาณภาพ AI หรือการดัดแปลงพิกเซล"
+        warning = "ตรวจพบร่องรอยการดัดแปลงพิกเซลหรือร่องรอย AI Forensics อาจส่งผลต่อความแม่นยำในการวิเคราะห์ตำหนิและสีผิวพระ"
+    elif not has_camera_hardware and norm_source != "camera":
+        trust_tier = "unverified_metadata"
+        label = "Warning: ไม่พบข้อมูลฮาร์ดแวร์กล้อง (อาจผ่านการเซฟซ้ำหรือตกแต่ง)"
+        warning = "ไม่พบข้อมูลฮาร์ดแวร์กล้องต้นฉบับในไฟล์ภาพ (ภาพอาจผ่านการเซฟซ้ำหรือส่งต่อผ่านแอปพลิเคชัน)"
+        forensics_notes.append("ไม่พบข้อมูลฮาร์ดแวร์กล้องต้นฉบับใน EXIF (อาจถูกลบหรือผ่านแอปส่งข้อความ)")
+        if noise_std > 0:
+            forensics_notes.append(f"ระดับสัญญาณรบกวนของภาพอยู่ในเกณฑ์ภาพถ่ายทั่วไป (Noise STD: {noise_std})")
     elif norm_source == "camera":
-        return {
-            "trust_tier": "tier_1",
-            "label": "🛡️ Live Camera Verified",
-            "detected_software": None,
-            "warning": None,
-            "capture_source": "camera"
-        }
+        trust_tier = "tier_1"
+        label = "Tier 1: Live-Capture Verified"
+        warning = None
+        forensics_notes.append("ถ่ายสดผ่านกล้องพร้อมสัญญาณเซนเซอร์ปกติ")
+        if has_camera_hardware and camera_device:
+            forensics_notes.append(f"อุปกรณ์กล้อง: {camera_device}")
+        if noise_std > 0:
+            forensics_notes.append(f"ระดับสัญญาณรบกวนเซนเซอร์ปกติ (Noise STD: {noise_std})")
     else:
-        return {
-            "trust_tier": "tier_2",
-            "label": "📁 Standard Upload",
-            "detected_software": None,
-            "warning": None,
-            "capture_source": "upload"
-        }
+        trust_tier = "tier_2"
+        label = "Tier 2: Authentic Camera File"
+        warning = None
+        cam_str = f" ({camera_device})" if camera_device else ""
+        forensics_notes.append(f"ไฟล์ภาพแท้จากกล้อง{cam_str} มีข้อมูลฮาร์ดแวร์และสัญญาณเซนเซอร์สมบูรณ์")
+        if noise_std > 0:
+            forensics_notes.append(f"ระดับสัญญาณรบกวนเซนเซอร์ปกติ (Noise STD: {noise_std})")
+
+    metrics = {
+        "ela_max": max_block_ela,
+        "ela_median": median_block_ela,
+        "noise_std": noise_std,
+        "zero_noise_ratio": zero_noise_ratio
+    }
+
+    return {
+        "trust_tier": trust_tier,
+        "label": label,
+        "detected_software": detected_software,
+        "warning": warning,
+        "capture_source": norm_source,
+        "has_camera_hardware": has_camera_hardware,
+        "forensics_notes": forensics_notes,
+        "metrics": metrics
+    }
 
 def decode_and_orient_image(image_bytes: bytes) -> Optional[np.ndarray]:
     """
@@ -679,7 +845,8 @@ def generate_typhoon_summary(
     total_conf: float,
     defects_list: Optional[List[Dict[str, Any]]] = None,
     has_back_image: bool = True,
-    ambiguity_warning: Optional[Dict[str, Any]] = None
+    ambiguity_warning: Optional[Dict[str, Any]] = None,
+    provenance: Optional[Dict[str, Any]] = None
 ) -> str:
     """
     Calls Typhoon LLM (OpenAI-compatible) with 8.0-second timeout.
@@ -687,6 +854,7 @@ def generate_typhoon_summary(
     - b2c: explains front mold keypoints, (back yantra/kraap-gru if present), defect locations, and recommends best province/market.
     - b2b: analyzes defect spots, pawn/holding risk, and commercial valuation margin.
     - Handles Somdej Ambiguity warning when detected.
+    - Alerts on Image Forensics warning when pixel manipulation or AI generation is detected.
     Falls back gracefully to rich JSON-derived text if key is missing or call fails.
     """
     name = amulet.get("name", "พระเครื่อง")
@@ -717,6 +885,18 @@ def generate_typhoon_summary(
             f"({ambiguity_warning.get('price_range_note', '')}) แนะนำตรวจสอบมวลสารด้านข้างและคราบกรุเพิ่มเติมโดยผู้เชี่ยวชาญ"
         )
 
+    forensics_note = ""
+    forensics_prompt_chunk = ""
+    if provenance and provenance.get("trust_tier") == "flagged":
+        forensics_note = (
+            "\n⚠️ [คำเตือน AI Forensics]: ตรวจพบสัญญาณภาพ AI หรือร่องรอยการดัดแปลงพิกเซล "
+            "แนะนำตรวจสอบองค์จริงอย่างละเอียดก่อนการเช่าบูชา"
+        )
+        forensics_prompt_chunk = (
+            "\n[คำเตือน AI Forensics]: ภาพถ่ายนี้ตรวจพบสัญญาณภาพ AI หรือร่องรอยการดัดแปลงพิกเซล "
+            "ให้เพิ่มคำเตือนสั้นๆ 1 ประโยคแนะนำให้ตรวจสอบองค์จริงอย่างระมัดระวัง"
+        )
+
     # 1. Fallback text (concise 3-4 lines)
     if user_mode.lower() == "b2b":
         risk_text = f"จุดตรวจความเสี่ยง: หน้าต้องคมชัดตามพิมพ์ '{front_kp[:40]}...'"
@@ -726,7 +906,7 @@ def generate_typhoon_summary(
             f"【วิเคราะห์เชิงพาณิชย์ B2B】{name} ({year}) สภาพสมบูรณ์ {condition_pct}% พบตำหนิ {defect_count} จุด ({defect_summary_text})\n"
             f"ราคากลางประเมิน {estimated_price_thb:,} บาท | กรอบรับจำนำปลอดภัย (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
             f"{risk_text}\n"
-            f"ตลาดปล่อยสภาพคล่องสูงสุด: {region}{ambiguity_note}"
+            f"ตลาดปล่อยสภาพคล่องสูงสุด: {region}{ambiguity_note}{forensics_note}"
         )
     else:
         back_mention = f"\nด้านหลังเร่งมิติ CLAHE ตรวจสอบ: {back_kp[:80]}..." if has_back_image else ""
@@ -734,7 +914,7 @@ def generate_typhoon_summary(
             f"【จุดสังเกตสำหรับนักสะสม B2C】{name} ({year}) วัด {temple} สภาพสมบูรณ์ {condition_pct}%\n"
             f"สภาพตำหนิที่ตรวจพบ: {defect_summary_text}\n"
             f"ด้านหน้าสังเกตพิมพ์ทรง: {front_kp[:90]}...{back_mention}\n"
-            f"พื้นที่แนะนำปล่อยเช่า: {region} ({reason}){ambiguity_note}"
+            f"พื้นที่แนะนำปล่อยเช่า: {region} ({reason}){ambiguity_note}{forensics_note}"
         )
 
     client = get_typhoon_client()
@@ -762,7 +942,7 @@ def generate_typhoon_summary(
             f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
             f"ราคากลางประเมิน: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
             f"กรอบรับจำนำแนะนำ (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
-            f"จุดสังเกตหน้า: {front_kp}{back_line}{ambiguity_prompt_chunk}\n"
+            f"จุดสังเกตหน้า: {front_kp}{back_line}{ambiguity_prompt_chunk}{forensics_prompt_chunk}\n"
             "สรุปวิเคราะห์จุดตำหนิที่ตรวจพบ ความเสี่ยงในการรับเช่า และกรอบราคาพาณิชย์ ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
     else:
@@ -775,7 +955,7 @@ def generate_typhoon_summary(
         user_prompt = (
             f"พระเครื่อง: {name} ({temple}, {year}) [สแกน: {scan_scope}]\n"
             f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
-            f"จุดสังเกตด้านหน้า: {front_kp}{back_line}{ambiguity_prompt_chunk}\n"
+            f"จุดสังเกตด้านหน้า: {front_kp}{back_line}{ambiguity_prompt_chunk}{forensics_prompt_chunk}\n"
             f"พื้นที่แนะนำ: {region} ({reason})\n"
             "สรุปจุดสังเกตพิมพ์ทรงหน้า (และคราบกรุหลังถ้ามี) พร้อมระบุสภาพจุดตำหนิที่ตรวจพบ และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
@@ -1145,7 +1325,8 @@ async def analyze_amulet(
         total_conf=total_conf,
         defects_list=total_defects[:5],
         has_back_image=has_back_image,
-        ambiguity_warning=ambiguity_warning
+        ambiguity_warning=ambiguity_warning,
+        provenance=provenance
     )
 
     elapsed_ms = round((time.time() - start_time) * 1000, 1)

@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-11-19T02:20:16.189858",
+  "last_updated": "2026-11-19T03:04:04.904614",
   "last_updated_human": "อัปเดตสดเมื่อสักครู่",
   "market_summary": {
     "active_listings_today": 542,
@@ -9,7 +9,7 @@
     "fastest_liquidity_region": "กรุงเทพมหานครและปริมณฑล (สภาพคล่อง 1-2 วัน)"
   },
   "ai_insight": {
-    "summary": "ตลาดพระเครื่องกำลังเผชิญแรงกดดันจากความไม่เชื่อมั่นหลังข่าวฟอกเงิน หลอกประมูล และดราม่าเซียนพระชื่อดัง ทำให้ราคาพระดังอย่าง \"เหรียญเหนือดวง\" ร่วงฮวบ สะท้อนความเสี่ยงสูงจากการลงทุนในพระเครื่องที่ไม่มีพื้นฐานความน่าเชื่อถือ  \nควรระมัดระวังการซื้อขายพระเครื่องที่มีราคาสูงโดยไม่มีเอกสารรับรอง และเน้นสะสมพระแท้จากแหล่งเชื่อถือได้ เพื่อรักษาสภาพคล่องและลดความเสี่ยงจากการถูกฟอกเงินหรือหลอกลวง",
+    "summary": "ตลาดพระเครื่องเผชิญแรงกดดันจากข่าวฉาวและขบวนการหลอกลวง ทำให้ความเชื่อมั่นลดลง โดยเฉพาะพระดังอย่าง \"เหรียญเหนือดวง\" ราคาพุ่งลงอย่างรุนแรง สะท้อนความไม่มั่นคงของสภาพคล่องและความต้องการสะสมอาจชะลอตัวในระยะสั้น  \nควรระมัดระวังการลงทุนในพระเครื่องที่มีกระแสสูง ตรวจสอบแหล่งที่มาอย่างเข้มงวด และเลือกสะสมเฉพาะพระที่มีประวัติชัดเจน เพื่อลดความเสี่ยงจากการถูกหลอกลวง.",
     "trend": "bullish",
     "trend_label": "วิเคราะห์สดโดย Typhoon AI",
     "recommendation": "พิจารณาปล่อยเช่าในศูนย์กลางตลาดสายตรงหรือสมาคมฯ เพื่อรับราคากลางที่สะท้อนอุปสงค์จริง"
@@ -17,42 +17,47 @@
   "live_news": [
     {
       "id": "rss-1",
-      "title": "ขบวนการหลอกประมูลพระเก๊",
-      "source": "ศูนย์ต่อต้านข่าวปลอม ประเทศไทย",
-      "link": "https://news.google.com/rss/articles/CBMirAJBVV95cUxPNDNBcm9fOVUySDBxdmg4OVEtOFJsSTE5MnhzX2c2TVhRdzhXeURBV0tRZDRFOFJrY09hZDlMMUd2c2Fpd01jbFl0c18xNFJYeDQyTUZfWFg1alhYVlFCM3JVQWtRZHlSdjZuZkd3SlVvS0FyM1A0YUs0SzlvWjdFUGtfUWl4eXdwYjJINlpPc2V1WXRmWWkwVzBMd3B2SEVCeVVSTnVOdHZyeXlDb1AtQnRtdXBweGhFM09VSEc4NVdscEpSZVVCdDM0M01KSTRKWFRUWTBTdzhPSVJ0aTFOTW56M0V0aVhURnR4S0hyNFMtWlZEMzZBdTdaRjZVTkdpdjNDMS1saE9WZXFPYlM4d2V5SDZkTjNzVVJUNzVhdVF0VHZBazRTa1NQRnU?oc=5",
-      "published": "Thu, 16 Jul 2026 07:00:00 GMT",
+      "title": "ช็อกวงการพระเครื่อง “เหรียญเหนือดวง” ราคาดิ่ง จากหลักล้านเหลือแค่หมื่น",
+      "source": "อมรินทร์ทีวี ช่อง 34",
+      "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE1QZmF3NkdlUkNHR1U2clFKb2FvWVh3c0drSFFLUUlnbFlWY3ZiLXJna1hHMkxIcFoxU29kUFhKeW5UMWg5cE84OElwM2F3YUlZU2llZ25n?oc=5",
+      "published": "11 Sep 2026, 07:00",
+      "timestamp": 1789110000.0,
       "category": "ข่าวสารวงการพระ"
     },
     {
       "id": "rss-2",
-      "title": "News1. . เปิดเส้นทางเส้นเงินสีเทา สู่การฟอกผ่านวงการ\"พระเครื่อง\" (07/05/69) #news1 #วงการพระเครื่อง #เงินสีเทา #ฟอกเงิน",
-      "source": "Facebook",
-      "link": "https://news.google.com/rss/articles/CBMiiwdBVV95cUxPVlk4bHNrVHRld1JaY21zUkdvbWxzeGlseU1GVUNmM2N4cHlPUXo2cVE1SFZBMS0wQW9yMmlCQ1d3VU9xZGVJME9sd1Z0NGRrM1EzU29kU3BPVmpzNGx2NHVyUVRHOXM0NlM4YzY3bjUteVd2SHZHT2dfbFZlaEZEV2hVTlVLWGFBRVZ4LTlXVUQ4LTBjTXkxd0s4ZGhDdVVGWXdTMC13TTJCY29XZzlPQUFhZndBeDdIcDJKMWRCNTl0bmtkMXFYd3VtYTRQZksySGI1WWtRQkFFaS0zSE1NQ1VvNVJVTGtPejQ5YXB0Uk9adG5Nd19rNDM3MjdVaF9KT2JyUHo3MWlERFphWmY4aUEwQ1FKT3llWUJsY1RhLUNETDJRM0ZaQ19hSUpxT3RYOHBNY0NDdVJsWGZSYTlqTXE3TnE1bmVoX3h1eTVIQnJvTnMyMnNIUktyQmVkNmZVY3o1dy0tdUVCWE5SdFNnRkRwUUVyZl9QZTZaWmEzdUhsVl80NkItNmQ3N2xVcjdRQXFqREFvYmdObWRENlFoOWN6RlZIQmQwWmkxM3M2bHFPOTNUX3FVd2F2dWVVX0ZfS25NcUpOYUdwdWlRdjNhTlRVUmJQZDlWam9LNHhGQ05DaXl0NTFoN3VEX1dtOWRCc0x1MENMMmNQREtfQ2NyV0QwbVdEX1BvT2dTeHVSWm5BWjA4c2QtU0xuZTl3SWtVcDk4eEVSSVp3SjVrSlpWYV9kNG1xM3ZqTlJyX29nLTl3VXZRYUJPUlZEZ2hDeXliNjlYMlNaVlRJdUNBTktGUFBxNktTQnhqTGhHVDVuTkxVN29NZ00zZm5lODJrNHpTdnU5WFlTSDgwZk5NMG1OMEJteE42VXJEejQzREtYbVBvbHZVWlhIR0kyUGhBMUF0MFRRNzFwS2Y3a2lHLUxuS1NYUzJ1VkFKZ28tbC1ZdW9zOWhMNTJ1TEJwYlBJU1J2QkJpWGZvNkFKdWJDWmUyMnlfd2g0SjdlY2RMLW9UdUljcm1maWtvb25NelBKc1RWRHNfRjI1RHBWdGNzdUtPWWJsQ3Zoa0lESHhzWFdBNFFJekc3TkFHdUZEcURtWlotdlFreHk5VUR6Yzlra0d1VVZtT05ZT19HempkNEVSN3F2YnNzTFJHNi1tWU9oR1puTWgxTVVUdmxzbmZabnVSeWdXUUFDc2Q1b1Bv?oc=5",
-      "published": "Wed, 06 May 2026 07:00:00 GMT",
+      "title": "วงการพระเครื่องอุดรฯ ระส่ำ! ข่าว \"สมีโชติ\" กระทบ “เหรียญเหนือดวง” ราคาหลักล้าน ตกฮวบเหลือหลักหมื่น",
+      "source": "ผู้จัดการออนไลน์",
+      "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE1kVlVhMzRueTQ3eHlrcXluZWpLXy0zVnNfcDh2OVY3TFc5Z2lELVpqUXh4QWhTSVh6UHBaanktYnNYOFVhWF9YTDFnRFlGOG54T0NEcUd6UDhTamw0?oc=5",
+      "published": "11 Sep 2026, 07:00",
+      "timestamp": 1789110000.0,
       "category": "ข่าวสารวงการพระ"
     },
     {
       "id": "rss-3",
-      "title": "ช็อกวงการพระเครื่อง “เหรียญเหนือดวง” ราคาดิ่ง จากหลักล้านเหลือแค่หมื่น",
-      "source": "อมรินทร์ทีวี ช่อง 34",
-      "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE1QZmF3NkdlUkNHR1U2clFKb2FvWVh3c0drSFFLUUlnbFlWY3ZiLXJna1hHMkxIcFoxU29kUFhKeW5UMWg5cE84OElwM2F3YUlZU2llZ25n?oc=5",
-      "published": "Fri, 11 Sep 2026 07:00:00 GMT",
+      "title": "ดราม่าวงการพระเครื่อง เซียนพระชื่อดัง สลับพระเนื้อทองคำ อ้างฝีมือลูกน้อง ก่อนขอเคลียร์ 9 ล้าน",
+      "source": "ข่าวสด",
+      "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE8xSEdvMHI3TS1hX1N3U3UxZ1ZyaDR4dDR1WUVQOU9jei1tRWVyNVZBMS1iMWhOTzZ3YTMzTC15MTJ4X0hiR1l1OTZqNmZPOWZyUDZDaWVTSlJyNE56UE43cUxGNGVjUQ?oc=5",
+      "published": "11 Aug 2026, 07:00",
+      "timestamp": 1786431600.0,
       "category": "ข่าวสารวงการพระ"
     },
     {
       "id": "rss-4",
-      "title": "ดราม่าวงการพระเครื่อง เซียนพระชื่อดัง สลับพระเนื้อทองคำ อ้างฝีมือลูกน้อง ก่อนขอเคลียร์ 9 ล้าน",
-      "source": "ข่าวสด",
-      "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE8xSEdvMHI3TS1hX1N3U3UxZ1ZyaDR4dDR1WUVQOU9jei1tRWVyNVZBMS1iMWhOTzZ3YTMzTC15MTJ4X0hiR1l1OTZqNmZPOWZyUDZDaWVTSlJyNE56UE43cUxGNGVjUQ?oc=5",
-      "published": "Tue, 11 Aug 2026 07:00:00 GMT",
+      "title": "ขบวนการหลอกประมูลพระเก๊",
+      "source": "ศูนย์ต่อต้านข่าวปลอม ประเทศไทย",
+      "link": "https://news.google.com/rss/articles/CBMirAJBVV95cUxPNDNBcm9fOVUySDBxdmg4OVEtOFJsSTE5MnhzX2c2TVhRdzhXeURBV0tRZDRFOFJrY09hZDlMMUd2c2Fpd01jbFl0c18xNFJYeDQyTUZfWFg1alhYVlFCM3JVQWtRZHlSdjZuZkd3SlVvS0FyM1A0YUs0SzlvWjdFUGtfUWl4eXdwYjJINlpPc2V1WXRmWWkwVzBMd3B2SEVCeVVSTnVOdHZyeXlDb1AtQnRtdXBweGhFM09VSEc4NVdscEpSZVVCdDM0M01KSTRKWFRUWTBTdzhPSVJ0aTFOTW56M0V0aVhURnR4S0hyNFMtWlZEMzZBdTdaRjZVTkdpdjNDMS1saE9WZXFPYlM4d2V5SDZkTjNzVVJUNzVhdVF0VHZBazRTa1NQRnU?oc=5",
+      "published": "16 Jul 2026, 07:00",
+      "timestamp": 1784185200.0,
       "category": "ข่าวสารวงการพระ"
     },
     {
       "id": "rss-5",
-      "title": "วงการพระเครื่องอุดรฯ ระส่ำ! ข่าว \"สมีโชติ\" กระทบ “เหรียญเหนือดวง” ราคาหลักล้าน ตกฮวบเหลือหลักหมื่น",
-      "source": "ผู้จัดการออนไลน์",
-      "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE1kVlVhMzRueTQ3eHlrcXluZWpLXy0zVnNfcDh2OVY3TFc5Z2lELVpqUXh4QWhTSVh6UHBaanktYnNYOFVhWF9YTDFnRFlGOG54T0NEcUd6UDhTamw0?oc=5",
-      "published": "Fri, 11 Sep 2026 07:00:00 GMT",
+      "title": "TOP NEWS TALK ปฏิรูปวงการพระเครื่องเมืองไทย | 12 กรกฎาคม 2569 | FULL | TOP NEWS",
+      "source": "topnews.co.th",
+      "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1iMDFoVnZ4MjcwSlA3N2o4R2JDdkNPTUszaXFEWVJaV1pQTTlkc29LNGttQ1g2aU9aV09EWVpXX2JNNmkyV3BWbngyT1Y5RTFjcnJUMA?oc=5",
+      "published": "11 Jul 2026, 07:00",
+      "timestamp": 1783753200.0,
       "category": "ข่าวสารวงการพระ"
     }
   ],

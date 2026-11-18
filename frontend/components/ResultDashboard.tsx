@@ -159,6 +159,7 @@ export default function ResultDashboard({
         trust_tier: result.provenance?.trust_tier || "tier_2",
         trust_label: result.provenance?.label || "📁 Standard Upload",
         detected_software: result.provenance?.detected_software || null,
+        forensics_notes: result.provenance?.forensics_notes || [],
         ambiguity_warning: result.ambiguity_warning || null,
         analyze_response: result,
       };
@@ -367,29 +368,68 @@ export default function ResultDashboard({
               {result.amulet_info.temple} • {result.amulet_info.year}
             </p>
 
-            {/* Image Provenance & EXIF Forensics Trust Tier Badge */}
+            {/* Image Provenance & AI Forensics Trust Tier Badge & Notes */}
             {result.provenance && (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${
-                    result.provenance.trust_tier === "flagged"
-                      ? "bg-amber-500/20 text-amber-300 border-amber-400/50"
-                      : result.provenance.trust_tier === "tier_1"
-                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-400/50"
-                      : "bg-sky-500/20 text-sky-300 border-sky-400/50"
-                  }`}
-                >
-                  {result.provenance.label}
-                </span>
-                {result.provenance.detected_software && (
-                  <span className="text-[11px] text-amber-300">
-                    โปรแกรม: {result.provenance.detected_software}
+              <div className="mt-2.5 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${
+                      result.provenance.trust_tier === "flagged"
+                        ? "bg-rose-500/20 text-rose-300 border-rose-500/50"
+                        : result.provenance.trust_tier === "unverified_metadata"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-400/50"
+                        : result.provenance.trust_tier === "tier_1"
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-400/50"
+                        : "bg-sky-500/20 text-sky-300 border-sky-400/50"
+                    }`}
+                  >
+                    {result.provenance.label}
                   </span>
+                  {result.provenance.detected_software && (
+                    <span className="text-[11px] text-rose-300 font-medium">
+                      ตรวจพบ: {result.provenance.detected_software}
+                    </span>
+                  )}
+                </div>
+
+                {/* Red alert box for Flagged */}
+                {result.provenance.trust_tier === "flagged" && (
+                  <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/50 text-xs text-rose-200 space-y-1.5">
+                    <div className="flex items-center gap-2 font-bold text-rose-300 text-sm">
+                      <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>คำเตือนความน่าเชื่อถือของภาพ (AI Forensics Warning)</span>
+                    </div>
+                    {result.provenance.warning && (
+                      <p className="text-rose-200/90 leading-relaxed">{result.provenance.warning}</p>
+                    )}
+                    {result.provenance.forensics_notes && result.provenance.forensics_notes.length > 0 && (
+                      <ul className="list-disc list-inside space-y-0.5 pt-1 text-[11px] text-rose-300/90 font-mono">
+                        {result.provenance.forensics_notes.map((note, idx) => (
+                          <li key={idx}>{note}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 )}
-                {result.provenance.warning && (
-                  <span className="text-[11px] text-amber-200/90 block w-full mt-0.5">
-                    * {result.provenance.warning}
-                  </span>
+
+                {/* Amber banner for Unverified Metadata */}
+                {result.provenance.trust_tier === "unverified_metadata" && (
+                  <div className="p-3 rounded-2xl bg-amber-950/30 border border-amber-500/40 text-xs text-amber-200 space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-amber-300 text-xs sm:text-sm">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>ข้อสังเกตข้อมูลภาพ (Unverified Camera Metadata)</span>
+                    </div>
+                    {result.provenance.warning && (
+                      <p className="text-amber-200/90 leading-relaxed text-[11px]">{result.provenance.warning}</p>
+                    )}
+                    {result.provenance.forensics_notes && result.provenance.forensics_notes.length > 0 && (
+                      <ul className="list-disc list-inside space-y-0.5 pt-0.5 text-[11px] text-amber-300/80">
+                        {result.provenance.forensics_notes.map((note, idx) => (
+                          <li key={idx}>{note}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -794,6 +834,8 @@ export default function ResultDashboard({
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                         result.provenance.trust_tier === "flagged"
+                          ? "bg-rose-500/20 text-rose-300 border-rose-500/50"
+                          : result.provenance.trust_tier === "unverified_metadata"
                           ? "bg-amber-500/20 text-amber-300 border-amber-400/50"
                           : result.provenance.trust_tier === "tier_1"
                           ? "bg-emerald-500/20 text-emerald-400 border-emerald-400/50"
@@ -810,11 +852,35 @@ export default function ResultDashboard({
                 <p className="text-xs text-[#9A8F80]">
                   รหัสอ้างอิง: #SCAN-{result.model_id.toUpperCase()}-2569 • ตรวจสอบโดย Dual-View Amulet AI
                 </p>
-                {result.provenance?.warning && (
-                  <p className="text-[11px] text-amber-300/90 font-medium pt-0.5">
-                    * {result.provenance.warning}
-                  </p>
-                )}
+
+                {/* Provenance Alert in Certificate */}
+                {result.provenance &&
+                  (result.provenance.trust_tier === "flagged" ||
+                    result.provenance.trust_tier === "unverified_metadata") && (
+                    <div
+                      className={`mt-2 p-2.5 rounded-xl border text-xs space-y-1 ${
+                        result.provenance.trust_tier === "flagged"
+                          ? "bg-rose-950/40 border-rose-500/40 text-rose-200"
+                          : "bg-amber-950/30 border-amber-500/30 text-amber-200"
+                      }`}
+                    >
+                      <div className="font-bold flex items-center gap-1.5 text-xs">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{result.provenance.label}</span>
+                      </div>
+                      {result.provenance.warning && (
+                        <p className="text-[11px] opacity-90">{result.provenance.warning}</p>
+                      )}
+                      {result.provenance.forensics_notes &&
+                        result.provenance.forensics_notes.length > 0 && (
+                          <ul className="list-disc list-inside space-y-0.5 text-[10px] opacity-80 pt-0.5 font-mono">
+                            {result.provenance.forensics_notes.map((n, i) => (
+                              <li key={i}>{n}</li>
+                            ))}
+                          </ul>
+                        )}
+                    </div>
+                  )}
               </div>
 
               <button

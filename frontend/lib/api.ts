@@ -570,12 +570,31 @@ export async function analyzeAmulet(params: {
       DEMO_AMULETS.find((a) => a.id === params.mockPresetId) || DEMO_AMULETS[0];
     const mockData = { ...preset.data };
     if (!mockData.provenance) {
+      const isCam = params.captureSource === "camera";
       mockData.provenance = {
-        trust_tier: params.captureSource === "camera" ? "tier_1" : "tier_2",
-        label: params.captureSource === "camera" ? "🛡️ Live Camera Verified" : "📁 Standard Upload",
+        trust_tier: isCam ? "tier_1" : "tier_2",
+        label: isCam ? "Tier 1: Live-Capture Verified" : "Tier 2: Authentic Camera File",
         detected_software: null,
         warning: null,
         capture_source: params.captureSource || "upload",
+        has_camera_hardware: true,
+        forensics_notes: isCam
+          ? [
+              "ภาพถ่ายสดจากกล้องสมาร์ตโฟน (Live Camera Verified)",
+              "ระดับการบีบอัดพิกเซลสม่ำเสมอทั่วทั้งภาพ (Normal ELA)",
+              "ระดับสัญญาณรบกวนของเซนเซอร์อยู่ในเกณฑ์ธรรมชาติ (Natural Noise)",
+            ]
+          : [
+              "พบข้อมูลฮาร์ดแวร์กล้องจริงครบถ้วน",
+              "ระดับการบีบอัดพิกเซลสม่ำเสมอทั่วทั้งภาพ (Normal ELA)",
+              "ระดับสัญญาณรบกวนของเซนเซอร์อยู่ในเกณฑ์ธรรมชาติ (Natural Noise)",
+            ],
+        metrics: {
+          ela_max: 1.25,
+          ela_median: 0.52,
+          noise_std: 14.8,
+          zero_noise_ratio: 0.35,
+        },
       };
     }
     return mockData;

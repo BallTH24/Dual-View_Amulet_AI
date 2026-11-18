@@ -235,6 +235,7 @@ export default function AmuletVault({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((it) => {
               const isFlagged = it.trust_tier === "flagged";
+              const isUnverified = it.trust_tier === "unverified_metadata";
               const isCamera = it.trust_tier === "tier_1";
 
               return (
@@ -257,6 +258,8 @@ export default function AmuletVault({
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-md border ${
                             isFlagged
+                              ? "bg-rose-600/90 text-white border-rose-400"
+                              : isUnverified
                               ? "bg-amber-500/90 text-amber-950 border-amber-300"
                               : isCamera
                               ? "bg-emerald-600/90 text-white border-emerald-400"
@@ -379,6 +382,8 @@ export default function AmuletVault({
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
                       selectedItem.trust_tier === "flagged"
+                        ? "bg-rose-500/20 text-rose-300 border-rose-400/40"
+                        : selectedItem.trust_tier === "unverified_metadata"
                         ? "bg-amber-500/20 text-amber-300 border-amber-400/40"
                         : selectedItem.trust_tier === "tier_1"
                         ? "bg-emerald-500/20 text-emerald-400 border-emerald-400/40"
@@ -470,6 +475,34 @@ export default function AmuletVault({
                   </p>
                 </div>
               )}
+
+            {/* Forensics Notes Card if applicable */}
+            {(selectedItem.trust_tier === "flagged" ||
+              selectedItem.trust_tier === "unverified_metadata") && (
+              <div
+                className={`p-3.5 rounded-2xl border text-xs space-y-1.5 ${
+                  selectedItem.trust_tier === "flagged"
+                    ? "bg-rose-950/30 border-rose-500/30 text-rose-200"
+                    : "bg-amber-950/30 border-amber-500/30 text-amber-200"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>
+                    {selectedItem.trust_tier === "flagged"
+                      ? "คำเตือน AI Forensics & การดัดแปลงพิกเซล"
+                      : "ข้อสังเกตข้อมูลภาพ (Unverified Camera Metadata)"}
+                  </span>
+                </div>
+                {selectedItem.forensics_notes && selectedItem.forensics_notes.length > 0 && (
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px] opacity-85 font-mono pt-1">
+                    {selectedItem.forensics_notes.map((note, idx) => (
+                      <li key={idx}>{note}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {/* Typhoon AI Analysis */}
             <div className="space-y-2">
