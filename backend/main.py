@@ -6,11 +6,23 @@ import base64
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+from dotenv import load_dotenv
+
+# ---------------------------------------------------------
+# Load Environment Variables (.env)
+# ---------------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent
+
+# Ensure .env is loaded whether run from root or backend/
+for env_candidate in [
+    BASE_DIR / ".env",
+    BASE_DIR / "backend" / ".env",
+    BASE_DIR.parent / ".env",
+]:
+    if env_candidate.exists():
+        load_dotenv(env_candidate, override=True)
+        break
+load_dotenv()
 
 import cv2
 import numpy as np
@@ -41,8 +53,6 @@ app.add_middleware(
 # ---------------------------------------------------------
 # Paths & Database Loading
 # ---------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent
-
 def find_db_path() -> Path:
     candidates = [
         BASE_DIR / "data" / "amulets_db.json",
@@ -113,17 +123,16 @@ except Exception as e:
 # Typhoon AI Configuration
 # ---------------------------------------------------------
 TYPHOON_BASE_URL = "https://api.opentyphoon.ai/v1"
-TYPHOON_API_KEY = os.getenv("TYPHOON_API_KEY", "")
-TYPHOON_MODEL = os.getenv("TYPHOON_MODEL", "typhoon-v1.5x-70b-instruct")
+TYPHOON_MODEL = os.getenv("TYPHOON_MODEL", "typhoon-v2.5-30b-a3b-instruct")
 
 def get_typhoon_client() -> Optional[openai.OpenAI]:
-    api_key = os.getenv("TYPHOON_API_KEY", TYPHOON_API_KEY)
-    if not api_key:
+    api_key = os.getenv("TYPHOON_API_KEY", "")
+    if not api_key or not api_key.strip():
         return None
     return openai.OpenAI(
         base_url=TYPHOON_BASE_URL,
-        api_key=api_key,
-        timeout=4.0
+        api_key=api_key.strip(),
+        timeout=6.0
     )
 
 # ---------------------------------------------------------
@@ -299,7 +308,10 @@ def generate_typhoon_summary(
     total_conf: float
 ) -> str:
     """
-    Calls Typhoon LLM (OpenAI-compatible) with 4-second timeout.
+    Calls Typhoon LLM (OpenAI-compatible) with 6.0-second timeout.
+    Answers in Thai, concise, direct to the point, max 3-4 lines:
+    - b2c: explains front mold keypoints, back yantra/kraap-gru, and recommends best province/market.
+    - b2b: analyzes defect spots, pawn/holding risk, and commercial valuation margin.
     Falls back gracefully to rich JSON-derived text if key is missing or call fails.
     """
     name = amulet.get("name", "พระเครื่อง")
@@ -311,68 +323,66 @@ def generate_typhoon_summary(
     reason = amulet.get("region_reason", "")
     base_price = amulet.get("base_price_thb", 0)
 
-    # Prepare Fallbacks based on user_mode
+    # 1. Fallback text (concise 3-4 lines)
     if user_mode.lower() == "b2b":
         fallback_text = (
-            f"【รายงานประเมินสำหรับศูนย์รับจำนำ/ร้านพระเครื่อง (B2B)】\n"
-            f"• พระเครื่อง: {name} ({temple}, {year})\n"
-            f"• สภาพความสมบูรณ์: {condition_pct}% (พบจุดตำหนิ/สึกหรอ {defect_count} ตำแหน่ง) ความมั่นใจพิมพ์ทรง {total_conf}%\n"
-            f"• ราคากลางประเมินสภาพ: {estimated_price_thb:,} บาท (ราคาฐานสมบูรณ์ {base_price:,} บาท)\n"
-            f"• กรอบวงเงินรับจำนำแนะนำ (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
-            f"• จุดชี้ขาดสำคัญ: ด้านหน้าตรวจสอบ {front_kp} ด้านหลังผ่าน CLAHE ตรวจสอบ {back_kp}\n"
-            f"• ตลาดปล่อยสภาพคล่องสูงสุด: {region} ({reason})"
+            f"【วิเคราะห์เชิงพาณิชย์ B2B】{name} ({year}) สภาพสมบูรณ์ {condition_pct}% พบตำหนิ {defect_count} จุด\n"
+            f"ราคากลางประเมิน {estimated_price_thb:,} บาท | กรอบรับจำนำปลอดภัย (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
+            f"จุดตรวจความเสี่ยง: หน้าต้องคมชัดตามพิมพ์ '{front_kp[:40]}...' และหลัง '{back_kp[:40]}...'\n"
+            f"ตลาดปล่อยสภาพคล่องสูงสุด: {region}"
         )
     else:
         fallback_text = (
-            f"【สรุปผลการวิเคราะห์พิมพ์ทรงสำหรับผู้ศรัทธา/มือใหม่ (B2C)】\n"
-            f"พระเครื่องที่สแกนคือ {name} สร้างเมื่อ {year} ณ {temple}\n"
-            f"• การประเมินสภาพ: ความสมบูรณ์ {condition_pct}% อยู่ในเกณฑ์สวยตามธรรมชาติ มีตำหนิผิวเพียง {defect_count} จุด\n"
-            f"• มูลค่าเช่าหาโดยประมาณ: {estimated_price_thb:,} บาท\n"
-            f"• จุดสังเกตเอกลักษณ์ด้านหน้า: {front_kp}\n"
-            f"• จุดสังเกตยันต์และผิวหลัง (ผ่านการเร่งมิติ CLAHE): {back_kp}\n"
-            f"• คำแนะนำการบูชา/ส่งต่อ: แนะนำปล่อยเช่าในพื้นที่ {region} เนื่องจาก {reason}"
+            f"【จุดสังเกตสำหรับนักสะสม B2C】{name} ({year}) วัด {temple} สภาพสมบูรณ์ {condition_pct}%\n"
+            f"ด้านหน้าสังเกตพิมพ์ทรง: {front_kp[:90]}...\n"
+            f"ด้านหลังเร่งมิติ CLAHE ตรวจสอบ: {back_kp[:90]}...\n"
+            f"พื้นที่แนะนำปล่อยเช่า: {region} ({reason})"
         )
 
     client = get_typhoon_client()
     if not client:
         return fallback_text
 
-    system_prompt = (
-        "คุณคือผู้เชี่ยวชาญพระเครื่องไทยระดับสากลและที่ปรึกษาประเมินมูลค่าพระแท้ "
-        "ให้คำตอบเป็นภาษาไทยที่กระชับ สุภาพ แม่นยำ น่าเชื่อถือ โดยอ้างอิงจากข้อมูลที่กำหนดเท่านั้น"
-    )
-
+    # 2. Prompts tailored to b2c and b2b (3-4 lines concise requirement)
     if user_mode.lower() == "b2b":
+        system_prompt = (
+            "คุณคือที่ปรึกษาประเมินมูลค่าพระเครื่องสำหรับร้านพระและโรงรับจำนำ (B2B) "
+            "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาวไม่เกิน 3-4 บรรทัด "
+            "วิเคราะห์สภาพจุดตำหนิ ความเสี่ยงในการรับเช่า และกรอบราคาประเมินพาณิชย์"
+        )
         user_prompt = (
-            f"กรุณาวิเคราะห์สำหรับร้านรับจำนำ/ร้านพระเครื่อง (B2B):\n"
-            f"พระ: {name} ({temple}, {year})\n"
-            f"สภาพ: {condition_pct}% ตำหนิ {defect_count} จุด | ราคากลาง: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
-            f"จุดสังเกตหน้า: {front_kp}\n"
-            f"จุดสังเกตหลัง (CLAHE Enhanced): {back_kp}\n"
-            f"พื้นที่ตลาดคล่อง: {region}\n"
-            f"ระบุจุดตายชี้ขาด กรอบราคารับจำนำที่ปลอดภัย (Safety margin) และความเสี่ยงในการถือครอง"
+            f"รายการ: {name} ({temple}, {year})\n"
+            f"สภาพความสมบูรณ์: {condition_pct}% (พบตำหนิ {defect_count} จุด) | ราคากลาง: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
+            f"กรอบรับจำนำแนะนำ (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
+            f"จุดสังเกตหน้า: {front_kp} | จุดสังเกตหลัง: {back_kp}\n"
+            "สรุปวิเคราะห์จุดตำหนิ ความเสี่ยง และกรอบราคาพาณิชย์ ความยาวไม่เกิน 3-4 บรรทัด"
         )
     else:
+        system_prompt = (
+            "คุณคือผู้เชี่ยวชาญพระเครื่องไทยสำหรับนักสะสมทั่วไป (B2C) "
+            "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาวไม่เกิน 3-4 บรรทัด "
+            "อธิบายจุดสังเกตพิมพ์ทรงด้านหน้า คราบกรุ/มิติยันต์ด้านหลัง และแนะนำจังหวัดหรือตลาดที่ปล่อยเช่าได้ราคาดีที่สุด"
+        )
         user_prompt = (
-            f"กรุณาสรุปให้ความรู้สำหรับผู้เช่าบูชามือใหม่ (B2C):\n"
-            f"พระ: {name} ({temple}, {year})\n"
-            f"สภาพ: {condition_pct}% | ราคากลางประเมิน: {estimated_price_thb:,} บาท\n"
+            f"พระเครื่อง: {name} ({temple}, {year})\n"
+            f"สภาพความสมบูรณ์: {condition_pct}%\n"
             f"จุดสังเกตด้านหน้า: {front_kp}\n"
             f"จุดสังเกตด้านหลัง: {back_kp}\n"
             f"พื้นที่แนะนำ: {region} ({reason})\n"
-            f"สรุปความงดงาม พุทธคุณ และแนวทางการอนุรักษ์บูชาอย่างเข้าใจง่าย"
+            "สรุปจุดสังเกตพิมพ์ทรงหน้า-คราบกรุหลัง และแนะนำตลาดปล่อยเช่า ความยาวไม่เกิน 3-4 บรรทัด"
         )
 
+    model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
     try:
         response = client.chat.completions.create(
-            model=TYPHOON_MODEL,
+            model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.3,
-            max_tokens=600,
-            timeout=4.0
+            max_tokens=350,
+            timeout=6.0
         )
         content = response.choices[0].message.content
         return content.strip() if content else fallback_text
@@ -387,15 +397,18 @@ def generate_typhoon_summary(
 async def health_check():
     """
     Check server status, loaded YOLO model, processing device,
-    and loaded amulet database models.
+    Typhoon API status, and loaded amulet database models.
     """
     load_database()
+    api_key = os.getenv("TYPHOON_API_KEY", "")
+    model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
     return {
         "status": "ok",
         "model": MODEL_NAME,
         "model_path": MODEL_FILE_PATH,
         "device": DEVICE,
-        "typhoon_configured": bool(os.getenv("TYPHOON_API_KEY", TYPHOON_API_KEY)),
+        "typhoon_configured": bool(api_key and api_key.strip()),
+        "typhoon_model": model_name,
         "amulets_count": len(AMULETS_DB),
         "supported_models": list(AMULETS_DB.keys())
     }
@@ -409,11 +422,11 @@ async def analyze_amulet(
     """
     Scan Dual-View Amulet (Front & Back):
     1. Apply OpenCV CLAHE to back_image to highlight yantra grooves and stamp codes.
-    2. YOLO11 detection on front & enhanced back.
+    2. YOLO11 detection on front & enhanced back on device="mps" (if available).
     3. Combined confidence score: 0.45 * front_conf + 0.55 * back_conf.
     4. Condition grading (% integrity) from defects vs amulet area.
     5. Market valuation: base_price_thb * (condition_pct / 100).
-    6. Typhoon AI analysis with mode-specific advice & 4s timeout fallback.
+    6. Typhoon AI analysis (timeout=6.0s) with mode-specific advice & fallback.
     """
     start_time = time.time()
     load_database()
@@ -511,7 +524,7 @@ async def analyze_amulet(
     base_price_thb = int(amulet_info.get("base_price_thb", 100000))
     estimated_price_thb = int(base_price_thb * (condition_pct / 100.0))
 
-    # 7. Typhoon API Summary
+    # 7. Typhoon API Summary (6.0s timeout with fallback)
     ai_summary = generate_typhoon_summary(
         amulet=amulet_info,
         user_mode=user_mode,
@@ -571,20 +584,20 @@ async def analyze_amulet(
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_amulet_qa(req: ChatRequest):
     """
-    In-depth Q&A regarding the scanned amulet based strictly on context_info.
-    Has fallback if Typhoon API key is missing or unavailable.
+    In-depth Q&A regarding the scanned amulet based strictly on context_info
+    with 6.0s timeout and automatic fallback.
     """
     client = get_typhoon_client()
 
     system_instruction = (
-        "คุณคือผู้เชี่ยวชาญพระเครื่องไทย AI (Dual-View Amulet Assistant) "
-        "หน้าที่ของคุณคือตอบคำถามของผู้ใช้อย่างละเอียด สุภาพ และน่าเชื่อถือ "
-        "โดยอ้างอิงจากข้อมูลบริบท (Context Info) ที่ให้มาเท่านั้น "
-        "หากข้อมูลในบริบทไม่มีคำตอบชัดเจน ให้ตอบตามหลักการสากลของวงการพระเครื่องไทยและเตือนอย่างสุภาพ"
+        "คุณคือผู้เชี่ยวชาญพระเครื่องไทย AI (Typhoon Amulet Assistant) "
+        "ตอบคำถามของผู้ใช้อย่างละเอียด สุภาพ ถูกต้อง "
+        "โดยอ้างอิงจากข้อมูลบริบท (Context Info) ของพระองค์ที่สแกนเป็นหลัก "
+        "หากข้อมูลในบริบทมีระบุไว้ ให้ตอบตามบริบทนั้นอย่างชัดเจนและน่าเชื่อถือ"
     )
 
     user_message = (
-        f"【ข้อมูลพระเครื่องที่สแกนได้】\n{req.context_info}\n\n"
+        f"【ข้อมูลบริบทพระเครื่องที่สแกนได้】\n{req.context_info}\n\n"
         f"【คำถามจากผู้ใช้】: {req.question}"
     )
 
@@ -611,24 +624,29 @@ async def chat_amulet_qa(req: ChatRequest):
             )
         return ChatResponse(success=True, answer=ans, source="system_fallback")
 
+    model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
     try:
         completion = client.chat.completions.create(
-            model=TYPHOON_MODEL,
+            model=model_name,
             messages=[
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": user_message}
             ],
-            temperature=0.4,
-            max_tokens=600,
-            timeout=5.0
+            temperature=0.3,
+            max_tokens=250,
+            timeout=6.0
         )
         ans = completion.choices[0].message.content
-        return ChatResponse(success=True, answer=ans.strip() if ans else "ไม่สามารถประมวลผลคำตอบได้ในขณะนี้", source="typhoon_llm")
+        return ChatResponse(
+            success=True,
+            answer=ans.strip() if ans else "ไม่สามารถประมวลผลคำตอบได้ในขณะนี้",
+            source="typhoon_llm"
+        )
     except Exception as e:
-        print(f"[!] Chat Typhoon call error: {e}")
+        print(f"[!] Chat Typhoon API call error or timeout: {e}. Using fallback.")
         fallback_ans = (
-            f"จากข้อมูลของ {req.amulet_name} ตามรายงานการสแกน: "
-            f"ขอแนะนำให้พิจารณาเปรียบเทียบจุดสังเกตพิมพ์ทรงกับภาพองค์ครูอ้างอิงในระบบ "
+            f"จากข้อมูลบริบทของ {req.amulet_name}: "
+            f"ขอแนะนำให้พิจารณาเปรียบเทียบจุดสังเกตพิมพ์ทรงกับภาพองค์ครูอ้างอิงในรายงานสแกน "
             f"และรักษาผิวพระเดิมไว้ไม่ให้ถูกขัดล้างเพื่อคงมูลค่าสะสมสูงสุดครับ"
         )
         return ChatResponse(success=True, answer=fallback_ans, source="system_fallback")

@@ -26,7 +26,9 @@ ENV/
 env/
 .venv
 
-# Large Model Weights (YOLO downloads automatically)
+# YOLO outputs & Weights
+runs/
+backend/runs/
 *.pt
 
 # Node / Next.js
@@ -40,10 +42,11 @@ dist/
 
 # Environment Variables & Secrets
 .env
-.env.local
-.env.*.local
-frontend/.env.local
-frontend/.env.*.local
+.env.*
+*.env
+backend/.env
+backend/.env.*
+frontend/.env*
 
 # Backups
 frontend_backup/
