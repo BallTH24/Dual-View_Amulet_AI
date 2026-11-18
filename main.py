@@ -1175,6 +1175,73 @@ async def chat_amulet_qa(req: ChatRequest):
         )
         return ChatResponse(success=True, answer=fallback_ans, source="system_fallback")
 
+# ---------------------------------------------------------
+# Real-time Amulet Market & Live News Endpoints
+# ---------------------------------------------------------
+from market_service import (
+    load_cached_market_data,
+    update_live_market_cache,
+    get_cooldown_remaining,
+)
+
+@app.on_event("startup")
+async def start_market_scheduler():
+    """Background task updating live news & market trends every 15 minutes."""
+    async def market_worker():
+        while True:
+            try:
+                await asyncio.sleep(900)  # 15 minutes
+                client = get_typhoon_client()
+                model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
+                await update_live_market_cache(client, model_name)
+                print("[*] [Scheduler] Market & news cache refreshed successfully.", flush=True)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                print(f"[!] [Scheduler] Market refresh error: {e}", flush=True)
+
+    asyncio.create_task(market_worker())
+
+@app.get("/api/market")
+async def get_market_overview():
+    """
+    Returns real-time Thai amulet market data, regional price index,
+    live news from Google News RSS, and Typhoon AI market impact analysis.
+    """
+    data = load_cached_market_data()
+    return {
+        "success": True,
+        "cooldown_seconds_remaining": get_cooldown_remaining(),
+        **data
+    }
+
+@app.post("/api/market/refresh")
+async def refresh_market_data():
+    """
+    Manual refresh endpoint for real-time market data & news with 60-second cooldown limit.
+    """
+    remaining = get_cooldown_remaining()
+    if remaining > 0:
+        cached = load_cached_market_data()
+        return {
+            "success": True,
+            "status": "cooldown",
+            "message": f"กรุณารออีก {remaining} วินาทีก่อนกดอัปเดตใหม่",
+            "cooldown_seconds_remaining": remaining,
+            **cached
+        }
+
+    client = get_typhoon_client()
+    model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
+    refreshed = await update_live_market_cache(client, model_name)
+    return {
+        "success": True,
+        "status": "refreshed",
+        "message": "อัปเดตข้อมูลตลาดและข่าวสารล่าสุดเรียบร้อยแล้ว",
+        "cooldown_seconds_remaining": 60,
+        **refreshed
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

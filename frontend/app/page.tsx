@@ -7,6 +7,7 @@ import HomeChoices from "@/components/HomeChoices";
 import DualCapture from "@/components/DualCapture";
 import ProcessingScreen from "@/components/ProcessingScreen";
 import ResultDashboard from "@/components/ResultDashboard";
+import MarketBoard from "@/components/MarketBoard";
 import {
   AnalyzeResponse,
   FocusIntent,
@@ -222,6 +223,11 @@ export default function HomePage() {
     setStep("home");
   };
 
+  const handleOpenMarket = () => {
+    setErrorMsg(null);
+    setStep("market");
+  };
+
   const handleScanAgain = () => {
     setFrontFile(null);
     setBackFile(null);
@@ -244,6 +250,7 @@ export default function HomePage() {
         setUseMock={setUseMock}
         health={health}
         onGoHome={handleGoHome}
+        onOpenMarket={handleOpenMarket}
       />
 
       <main className="relative z-10 flex-1 w-full px-4 sm:px-6 py-6 sm:py-8">
@@ -257,6 +264,19 @@ export default function HomePage() {
           <HomeChoices
             onChooseIntent={handleChooseIntent}
             onQuickInspectDemo={handleQuickInspectDemo}
+            onOpenMarket={handleOpenMarket}
+          />
+        )}
+
+        {step === "market" && (
+          <MarketBoard
+            apiBase={apiBase}
+            useMock={useMock}
+            onGoBack={handleGoHome}
+            onInspectAmulet={() => {
+              setIntent("inspect");
+              setStep("capture");
+            }}
           />
         )}
 

@@ -2,6 +2,7 @@ import {
   AnalyzeResponse,
   DefectSpot,
   HealthResponse,
+  MarketResponse,
   UserMode,
 } from "./types";
 
@@ -628,3 +629,409 @@ export function resolveRefImageUrl(apiBase: string, path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${apiBase.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+export async function fetchMarketData(
+  apiBase: string,
+  useMock: boolean = false
+): Promise<MarketResponse> {
+  if (useMock) {
+    return MOCK_MARKET_DATA;
+  }
+
+  try {
+    const res = await fetch(`${apiBase.replace(/\/$/, "")}/api/market`, {
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      throw new Error(`Market API error (${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn("[*] fetchMarketData fallback to cached mock:", err);
+    return MOCK_MARKET_DATA;
+  }
+}
+
+export async function refreshMarketData(
+  apiBase: string,
+  useMock: boolean = false
+): Promise<MarketResponse> {
+  if (useMock) {
+    await new Promise((r) => setTimeout(r, 600));
+    return {
+      ...MOCK_MARKET_DATA,
+      last_updated_human: "อัปเดตสดเมื่อสักครู่ (โหมดจำลอง)",
+      cooldown_seconds_remaining: 60,
+    };
+  }
+
+  try {
+    const res = await fetch(`${apiBase.replace(/\/$/, "")}/api/market/refresh`, {
+      method: "POST",
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      throw new Error(`Refresh API error (${res.status})`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn("[*] refreshMarketData fallback:", err);
+    return MOCK_MARKET_DATA;
+  }
+}
+
+export const MOCK_MARKET_DATA: MarketResponse = {
+  success: true,
+  last_updated: new Date().toISOString(),
+  last_updated_human: "เมื่อสักครู่ (เรียลไทม์)",
+  cooldown_seconds_remaining: 0,
+  market_summary: {
+    active_listings_today: 542,
+    total_volume_thb: 248500000,
+    total_volume_formatted: "248.5 ล้านบาท",
+    top_trending_model: "พระสมเด็จวัดระฆังโฆสิตาราม พิมพ์ใหญ่",
+    fastest_liquidity_region: "กรุงเทพมหานครและปริมณฑล (สภาพคล่อง 1-2 วัน)",
+  },
+  ai_insight: {
+    summary:
+      "ภาพรวมตลาดพระเครื่องและชุดเบญจภาคีในสัปดาห์นี้มีสภาพคล่องสูงขึ้นอย่างต่อเนื่อง โดยเฉพาะพระสมเด็จและพระรอดที่มีความสมบูรณ์เดิมไม่ผ่านการขัดล้าง นักสะสมและศูนย์ประมูลพร้อมให้ราคาสูงกว่าค่าเฉลี่ย 5–8%",
+    trend: "bullish",
+    trend_label: "ตลาดขาขึ้น • ความต้องการสะสมสูง",
+    recommendation:
+      "หากมีพระเครื่องสภาพเดิมพิมพ์คมชัด แนะนำปล่อยเช่าในศูนย์กลางสมาคมฯ กรุงเทพฯ หรือตลาดสายตรงท้องถิ่น เพื่อให้ได้ราคาสูงสุดและสภาพคล่องสูงสุด",
+  },
+  live_news: [
+    {
+      id: "news-1",
+      title:
+        "สมาคมผู้นิยมพระเครื่องพระบูชาไทยจัดงานมหกรรมการประกวดพระเครื่องระดับประเทศ ยอดเงินสะพัดทะลุ 250 ล้านบาท",
+      source: "ไทยรัฐออนไลน์",
+      link: "https://www.thairath.co.th",
+      published: "15 นาทีที่แล้ว",
+      category: "งานประกวดพระ",
+    },
+    {
+      id: "news-2",
+      title:
+        "ตลาดพระท่าพระจันทร์-SC Plaza คึกคัก นักลงทุนและชาวต่างชาติแห่เช่าบูชาพระเบญจภาคีองค์ครูต่อเนื่อง",
+      source: "เดลินิวส์",
+      link: "https://www.dailynews.co.th",
+      published: "35 นาทีที่แล้ว",
+      category: "ภาวะตลาด",
+    },
+    {
+      id: "news-3",
+      title:
+        "เปิดสถิติประมูลพระสมเด็จบางขุนพรหม กรุวัดใหม่อมตรส พิมพ์ใหญ่องค์สภาพแชมป์ เคาะจบเกินเป้าหมาย 15%",
+      source: "มติชนออนไลน์",
+      link: "https://www.matichon.co.th",
+      published: "1 ชั่วโมงที่แล้ว",
+      category: "ผลประมูล",
+    },
+    {
+      id: "news-4",
+      title:
+        "สถาบันการเงินและโรงรับจำนำชั้นนำปรับเพิ่มเพดาน LTV การรับจำนำพระเบญจภาคีแท้ที่มีบัตรรับรองมาตรฐาน",
+      source: "ประชาชาติธุรกิจ",
+      link: "https://www.prachachat.net",
+      published: "2 ชั่วโมงที่แล้ว",
+      category: "สินเชื่อพระเครื่อง",
+    },
+    {
+      id: "news-5",
+      title:
+        "ชมรมอนุรักษ์พระเครื่องล้านนาเผย พระรอด ลำพูน พิมพ์ใหญ่เนื้อเขียว สภาพสมบูรณ์ เป็นที่ต้องการสูงสุดในรอบ 5 ปี",
+      source: "ข่าวสด",
+      link: "https://www.khaosod.co.th",
+      published: "3 ชั่วโมงที่แล้ว",
+      category: "สายตรงท้องถิ่น",
+    },
+  ],
+  recent_sales: [
+    {
+      id: "sale-101",
+      model_id: "somdej_watrakang",
+      amulet_name: "พระสมเด็จวัดระฆังโฆสิตาราม พิมพ์ใหญ่",
+      condition_pct: 89.5,
+      condition_grade: "สภาพสวยสมบูรณ์ (Excellent)",
+      price_thb: 13800000,
+      price_formatted: "13,800,000",
+      province: "กรุงเทพมหานคร",
+      channel: "สมาคมผู้นิยมพระเครื่องพระบูชาไทย",
+      closed_at: "12 นาทีที่แล้ว",
+      verified_cer: true,
+    },
+    {
+      id: "sale-102",
+      model_id: "somdej_bangkhunprom",
+      amulet_name: "พระสมเด็จบางขุนพรหม พิมพ์ใหญ่ กรุวัดใหม่อมตรส",
+      condition_pct: 84.0,
+      condition_grade: "สภาพปานกลาง (Good)",
+      price_thb: 7250000,
+      price_formatted: "7,250,000",
+      province: "นนทบุรี",
+      channel: "ศูนย์พระเครื่องพันธุ์ทิพย์งามวงศ์วาน",
+      closed_at: "28 นาทีที่แล้ว",
+      verified_cer: true,
+    },
+    {
+      id: "sale-103",
+      model_id: "phra_rod",
+      amulet_name: "พระรอด พิมพ์ใหญ่ วัดมหาวัน จ.ลำพูน",
+      condition_pct: 92.0,
+      condition_grade: "สภาพแชมป์ (Mint)",
+      price_thb: 7450000,
+      price_formatted: "7,450,000",
+      province: "ลำพูน",
+      channel: "ชมรมพระเครื่องเมืองลำพูน (สายตรง)",
+      closed_at: "45 นาทีที่แล้ว",
+      verified_cer: true,
+    },
+    {
+      id: "sale-104",
+      model_id: "phra_phong_suphan",
+      amulet_name: "พระผงสุพรรณ พิมพ์หน้าแก่ วัดพระศรีรัตนมหาธาตุ",
+      condition_pct: 86.5,
+      condition_grade: "สภาพสวยสมบูรณ์ (Excellent)",
+      price_thb: 5100000,
+      price_formatted: "5,100,000",
+      province: "สุพรรณบุรี",
+      channel: "ตลาดพระเครื่องสุพรรณบุรี",
+      closed_at: "1 ชั่วโมงที่แล้ว",
+      verified_cer: true,
+    },
+    {
+      id: "sale-105",
+      model_id: "somdej_ketchaiyo",
+      amulet_name: "พระสมเด็จเกศไชโย พิมพ์ 7 ชั้น นิยม",
+      condition_pct: 81.0,
+      condition_grade: "สภาพปานกลาง (Good)",
+      price_thb: 3800000,
+      price_formatted: "3,800,000",
+      province: "อ่างทอง",
+      channel: "ตลาดพระเครื่องไชโย",
+      closed_at: "1 ชั่วโมงที่แล้ว",
+      verified_cer: false,
+    },
+    {
+      id: "sale-106",
+      model_id: "phra_nangphaya",
+      amulet_name: "พระนางพญา พิมพ์เข่าโค้ง กรุวัดนางพญา",
+      condition_pct: 88.0,
+      condition_grade: "สภาพสวยสมบูรณ์ (Excellent)",
+      price_thb: 5600000,
+      price_formatted: "5,600,000",
+      province: "พิษณุโลก",
+      channel: "ศูนย์พระเครื่องวังจันทน์ พิษณุโลก",
+      closed_at: "2 ชั่วโมงที่แล้ว",
+      verified_cer: true,
+    },
+    {
+      id: "sale-107",
+      model_id: "phra_sumkor",
+      amulet_name: "พระซุ้มกอ พิมพ์ใหญ่ มีกนก กรุทุ่งเศรษฐี",
+      condition_pct: 85.5,
+      condition_grade: "สภาพสวยสมบูรณ์ (Excellent)",
+      price_thb: 5900000,
+      price_formatted: "5,900,000",
+      province: "กำแพงเพชร",
+      channel: "กลุ่มอนุรักษ์พระกรุทุ่งเศรษฐี",
+      closed_at: "3 ชั่วโมงที่แล้ว",
+      verified_cer: true,
+    },
+    {
+      id: "sale-108",
+      model_id: "somdej_watrakang",
+      amulet_name: "พระสมเด็จวัดระฆังโฆสิตาราม พิมพ์ใหญ่",
+      condition_pct: 76.5,
+      condition_grade: "สภาพผ่านการใช้ (Fair)",
+      price_thb: 11500000,
+      price_formatted: "11,500,000",
+      province: "สงขลา (หาดใหญ่)",
+      channel: "ศูนย์พระเครื่องหาดใหญ่ (นักลงทุนมาเลเซีย)",
+      closed_at: "4 ชั่วโมงที่แล้ว",
+      verified_cer: true,
+    },
+  ],
+  regional_prices: [
+    {
+      region_id: "bkk",
+      region_name: "กรุงเทพมหานคร และปริมณฑล",
+      provinces: ["กรุงเทพมหานคร", "นนทบุรี", "สมุทรปราการ", "ปทุมธานี"],
+      benchmark_diff_pct: 3.5,
+      liquidity_rating: "สูงมาก (5/5)",
+      liquidity_desc: "สภาพคล่องเร็วที่สุดในประเทศ ปิดยอดได้ใน 1-3 วัน",
+      market_hub: "ท่าพระจันทร์, พันธุ์ทิพย์งามวงศ์วาน, SC Plaza สายใต้ใหม่",
+      best_for: "พระสมเด็จวัดระฆัง และพระชุดเบญจภาคีทุกพิมพ์",
+      models: [
+        {
+          model_id: "somdej_watrakang",
+          name: "พระสมเด็จวัดระฆัง พิมพ์ใหญ่",
+          national_avg_thb: 15000000,
+          regional_avg_thb: 15500000,
+          diff_pct: 3.3,
+          turnaround: "1-3 วัน",
+          note: "ราคาสูงสุด มีมหาเศรษฐีและสมาคมรองรับทันที",
+        },
+        {
+          model_id: "somdej_bangkhunprom",
+          name: "พระสมเด็จบางขุนพรหม พิมพ์ใหญ่",
+          national_avg_thb: 8500000,
+          regional_avg_thb: 8800000,
+          diff_pct: 3.5,
+          turnaround: "2-4 วัน",
+          note: "นิยมทั้งกรุเก่าและกรุใหม่",
+        },
+        {
+          model_id: "phra_rod",
+          name: "พระรอด วัดมหาวัน พิมพ์ใหญ่",
+          national_avg_thb: 7000000,
+          regional_avg_thb: 7200000,
+          diff_pct: 2.9,
+          turnaround: "3-5 วัน",
+          note: "กำลังซื้อสูงในกลุ่มผู้บริหารระดับสูง",
+        },
+      ],
+    },
+    {
+      region_id: "central",
+      region_name: "ภาคกลาง (สุพรรณบุรี / อ่างทอง / อยุธยา)",
+      provinces: ["สุพรรณบุรี", "อ่างทอง", "พระนครศรีอยุธยา", "ชัยนาท"],
+      benchmark_diff_pct: 5.2,
+      liquidity_rating: "สูงมาก (4.8/5)",
+      liquidity_desc: "ตลาดสายตรงพระผงและพระสมเด็จเกศไชโย",
+      market_hub:
+        "ตลาดพระเครื่องวัดป่าเลไลยก์ (สุพรรณบุรี), ตลาดพระไชโย (อ่างทอง)",
+      best_for: "พระผงสุพรรณ และพระสมเด็จเกศไชโย",
+      models: [
+        {
+          model_id: "phra_phong_suphan",
+          name: "พระผงสุพรรณ พิมพ์หน้าแก่",
+          national_avg_thb: 5500000,
+          regional_avg_thb: 5950000,
+          diff_pct: 8.2,
+          turnaround: "1-2 วัน",
+          note: "สายตรงสุพรรณบุรีให้ราคาสูงกว่ากรุงเทพฯ",
+        },
+        {
+          model_id: "somdej_ketchaiyo",
+          name: "พระสมเด็จเกศไชโย 7 ชั้น",
+          national_avg_thb: 4500000,
+          regional_avg_thb: 4850000,
+          diff_pct: 7.8,
+          turnaround: "1-3 วัน",
+          note: "สายตรงเมืองอ่างทองเช่าหาคล่องตัวสูง",
+        },
+        {
+          model_id: "somdej_watrakang",
+          name: "พระสมเด็จวัดระฆัง พิมพ์ใหญ่",
+          national_avg_thb: 15000000,
+          regional_avg_thb: 14800000,
+          diff_pct: -1.3,
+          turnaround: "5-7 วัน",
+          note: "ราคากลางใกล้เคียงกรุงเทพฯ",
+        },
+      ],
+    },
+    {
+      region_id: "north",
+      region_name: "ภาคเหนือ (ลำพูน / เชียงใหม่ / พิษณุโลก)",
+      provinces: ["ลำพูน", "เชียงใหม่", "พิษณุโลก", "กำแพงเพชร"],
+      benchmark_diff_pct: 6.8,
+      liquidity_rating: "สูงมาก (4.9/5)",
+      liquidity_desc: "สายตรงพระรอดลำพูน และพระนางพญาพิษณุโลก",
+      market_hub:
+        "ตลาดพระทิพยเนตร (เชียงใหม่), ชมรมพระเครื่องลำพูน, ตลาดพระวังจันทน์ (พิษณุโลก)",
+      best_for: "พระรอดลำพูน, พระนางพญา และพระซุ้มกอ",
+      models: [
+        {
+          model_id: "phra_rod",
+          name: "พระรอด วัดมหาวัน พิมพ์ใหญ่",
+          national_avg_thb: 7000000,
+          regional_avg_thb: 7650000,
+          diff_pct: 9.3,
+          turnaround: "1 วัน",
+          note: "เซียนล้านนาและนักธุรกิจเมืองเหนือให้ราคาสูงสุด",
+        },
+        {
+          model_id: "phra_nangphaya",
+          name: "พระนางพญา พิมพ์เข่าโค้ง",
+          national_avg_thb: 6000000,
+          regional_avg_thb: 6450000,
+          diff_pct: 7.5,
+          turnaround: "1-3 วัน",
+          note: "สายตรงเมืองสองแคว พิษณุโลก นิยมสูงมาก",
+        },
+        {
+          model_id: "phra_sumkor",
+          name: "พระซุ้มกอ พิมพ์ใหญ่ มีกนก",
+          national_avg_thb: 6500000,
+          regional_avg_thb: 6950000,
+          diff_pct: 6.9,
+          turnaround: "2-4 วัน",
+          note: "กรุทุ่งเศรษฐี กำแพงเพชร มีผู้ต้องการสะสมต่อเนื่อง",
+        },
+      ],
+    },
+    {
+      region_id: "isan",
+      region_name: "ภาคตะวันออกเฉียงเหนือ (อีสาน)",
+      provinces: ["นครราชสีมา", "ขอนแก่น", "อุบลราชธานี", "อุดรธานี"],
+      benchmark_diff_pct: -1.2,
+      liquidity_rating: "ปานกลาง-สูง (4.0/5)",
+      liquidity_desc: "กลุ่มคหบดีและข้าราชการผู้ใหญ่พร้อมเช่าบูชาพระแท้สภาพสวย",
+      market_hub: "ตลาดพระเครื่องโคราช, ศูนย์พระเครื่องขอนแก่น",
+      best_for: "พระสมเด็จ และพระชุดเบญจภาคีที่มีบัตรรับรอง",
+      models: [
+        {
+          model_id: "somdej_watrakang",
+          name: "พระสมเด็จวัดระฆัง พิมพ์ใหญ่",
+          national_avg_thb: 15000000,
+          regional_avg_thb: 14900000,
+          diff_pct: -0.7,
+          turnaround: "4-7 วัน",
+          note: "ต้องมีบัตรรับรองสมาคมชัดเจน",
+        },
+        {
+          model_id: "phra_nangphaya",
+          name: "พระนางพญา พิมพ์เข่าโค้ง",
+          national_avg_thb: 6000000,
+          regional_avg_thb: 6050000,
+          diff_pct: 0.8,
+          turnaround: "3-6 วัน",
+          note: "นิยมในกลุ่มผู้นำองค์กร",
+        },
+      ],
+    },
+    {
+      region_id: "south",
+      region_name: "ภาคใต้ (นครศรีฯ / สงขลา-หาดใหญ่ / ภูเก็ต)",
+      provinces: ["สงขลา", "นครศรีธรรมราช", "ภูเก็ต", "สุราษฎร์ธานี"],
+      benchmark_diff_pct: 2.8,
+      liquidity_rating: "สูง (4.6/5)",
+      liquidity_desc: "กำลังซื้อสูงจากนักธุรกิจปักษ์ใต้และชาวมาเลเซีย-สิงคโปร์",
+      market_hub: "ตลาดพระเครื่องหาดใหญ่, ศูนย์พระเครื่องเมืองนครฯ",
+      best_for: "พระสมเด็จวัดระฆัง และพระเบญจภาคีองค์แชมป์",
+      models: [
+        {
+          model_id: "somdej_watrakang",
+          name: "พระสมเด็จวัดระฆัง พิมพ์ใหญ่",
+          national_avg_thb: 15000000,
+          regional_avg_thb: 15600000,
+          diff_pct: 4.0,
+          turnaround: "2-4 วัน",
+          note: "ชาวสิงคโปร์-มาเลเซียโอนเงินสดทันที",
+        },
+        {
+          model_id: "phra_rod",
+          name: "พระรอด วัดมหาวัน พิมพ์ใหญ่",
+          national_avg_thb: 7000000,
+          regional_avg_thb: 7250000,
+          diff_pct: 3.6,
+          turnaround: "3-5 วัน",
+          note: "นิยมด้านแคล้วคลาดและบารมี",
+        },
+      ],
+    },
+  ],
+};

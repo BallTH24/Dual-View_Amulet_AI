@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Settings2, Wifi, Sparkles, ArrowLeft } from "lucide-react";
+import { Settings2, Wifi, Sparkles, ArrowLeft, TrendingUp } from "lucide-react";
 import { HealthResponse, ScreenStep, UserMode } from "@/lib/types";
 
 interface HeaderBarProps {
@@ -14,6 +14,7 @@ interface HeaderBarProps {
   setUseMock: (mock: boolean) => void;
   health: HealthResponse | null;
   onGoHome: () => void;
+  onOpenMarket?: () => void;
 }
 
 export default function HeaderBar({
@@ -26,6 +27,7 @@ export default function HeaderBar({
   setUseMock,
   health,
   onGoHome,
+  onOpenMarket,
 }: HeaderBarProps) {
   const [showSettings, setShowSettings] = useState(false);
 
@@ -65,6 +67,19 @@ export default function HeaderBar({
 
           {/* Minimal Right Controls */}
           <div className="relative z-10 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={step === "market" ? onGoHome : onOpenMarket}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs transition cursor-pointer touch-manipulation active:scale-[0.98] ${
+                step === "market"
+                  ? "bg-[#E6B85C] text-[#18130D] font-bold"
+                  : "bg-white/5 hover:bg-white/10 text-[#F5EFE6] border border-white/10"
+              }`}
+            >
+              <TrendingUp className={`w-3.5 h-3.5 ${step === "market" ? "text-[#18130D]" : "text-[#E6B85C]"}`} />
+              <span className="text-xs font-semibold">ตลาดพระสด</span>
+            </button>
+
             {step !== "home" && (
               <button
                 type="button"

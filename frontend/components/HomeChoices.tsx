@@ -7,11 +7,13 @@ import { FocusIntent } from "@/lib/types";
 interface HomeChoicesProps {
   onChooseIntent: (intent: FocusIntent) => void;
   onQuickInspectDemo: () => void;
+  onOpenMarket?: () => void;
 }
 
 export default function HomeChoices({
   onChooseIntent,
   onQuickInspectDemo,
+  onOpenMarket,
 }: HomeChoicesProps) {
   return (
     <div className="max-w-3xl mx-auto py-4 sm:py-8 space-y-8">
@@ -60,22 +62,27 @@ export default function HomeChoices({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             type="button"
-            onClick={() => onChooseIntent("market")}
+            onClick={onOpenMarket ? onOpenMarket : () => onChooseIntent("market")}
             className="relative z-10 text-left group rounded-3xl bg-[#1C1814] border border-white/10 hover:border-[#E6B85C]/50 p-5 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between gap-4 cursor-pointer touch-manipulation"
           >
             <div className="space-y-2.5">
-              <div className="w-11 h-11 rounded-2xl bg-[#E6B85C]/15 text-[#E6B85C] flex items-center justify-center">
-                <TrendingUp className="w-5 h-5" />
+              <div className="flex items-center justify-between">
+                <div className="w-11 h-11 rounded-2xl bg-[#E6B85C]/15 text-[#E6B85C] flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+                  ● เรียลไทม์สด
+                </span>
               </div>
               <h3 className="font-signature text-2xl font-bold text-[#F5EFE6] group-hover:text-[#F7E5B8] transition">
-                2. เช็คราคากลาง &amp; ภาคที่ขายดี
+                2. ตลาดพระ &amp; เช็คราคารายภาค
               </h3>
               <p className="text-xs sm:text-sm text-[#B8AD9E] leading-relaxed">
-                สแกนเพื่อประเมินราคาตามสภาพ และดูว่าควรนำไปปล่อยที่จังหวัดหรือภาคไหน
+                ดูราคากลาง 7 รุ่นแยกรายภาค/จังหวัด ข่าววงการพระ และรายการปิดการขายล่าสุด
               </p>
             </div>
             <div className="text-xs font-semibold text-[#E6B85C] inline-flex items-center gap-1">
-              <span>เริ่มเช็คราคา</span>
+              <span>เปิดกระดานตลาดพระ</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </button>
