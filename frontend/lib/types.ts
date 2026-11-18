@@ -1,8 +1,24 @@
 export type UserMode = "b2c" | "b2b";
 
-export type ScreenStep = "home" | "capture" | "processing" | "result" | "market";
+export type ScreenStep = "home" | "capture" | "processing" | "result" | "market" | "vault";
 
 export type FocusIntent = "inspect" | "market" | "assistant";
+
+export interface AmbiguityWarning {
+  is_ambiguous: boolean;
+  primary_candidate: string;
+  secondary_candidate: string;
+  price_range_note: string;
+  expert_advice: string;
+}
+
+export interface ImageProvenance {
+  trust_tier: "tier_1" | "tier_2" | "flagged";
+  label: string;
+  detected_software: string | null;
+  warning: string | null;
+  capture_source?: "camera" | "upload";
+}
 
 export interface DefectSpot {
   id: number;
@@ -81,6 +97,29 @@ export interface AnalyzeResponse {
     model_used: string;
     clahe_applied_on_back: boolean;
   };
+  provenance?: ImageProvenance;
+  ambiguity_warning?: AmbiguityWarning | null;
+}
+
+export interface VaultItem {
+  id: string;
+  saved_at: string;
+  saved_at_formatted: string;
+  name: string;
+  temple: string;
+  year: string;
+  model_id: string;
+  condition_pct: number;
+  condition_grade: string;
+  estimated_price_thb: number;
+  defect_count: number;
+  front_thumbnail: string; // Base64 downscaled (< 400px)
+  back_thumbnail?: string | null;
+  trust_tier: "tier_1" | "tier_2" | "flagged";
+  trust_label: string;
+  detected_software?: string | null;
+  ambiguity_warning?: AmbiguityWarning | null;
+  analyze_response: AnalyzeResponse;
 }
 
 export interface HealthResponse {

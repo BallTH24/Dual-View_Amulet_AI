@@ -165,30 +165,36 @@ export default function MarketBoard({
 
         {/* 4 Key Market Metrics */}
         {marketData && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-5 mt-5 border-t border-white/5 text-xs">
-            <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
-              <span className="text-[#8E8375] block">ปิดการขายวันนี้</span>
-              <span className="font-bold text-base text-[#F5EFE6]">
-                {marketData.market_summary.active_listings_today} รายการ
-              </span>
+          <div className="pt-5 mt-5 border-t border-white/5 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-[#8E8375]">
+              <span>สถิติตลาดจำลอง (Demo Market Statistics)</span>
+              <span>* การวิเคราะห์เชิงสถิติอ้างอิงจากราคากลาง</span>
             </div>
-            <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
-              <span className="text-[#8E8375] block">มูลค่าหมุนเวียนรวม</span>
-              <span className="font-bold text-base text-[#E6B85C]">
-                {marketData.market_summary.total_volume_formatted}
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
-              <span className="text-[#8E8375] block">พระยอดนิยมสูงสุด</span>
-              <span className="font-bold text-sm text-[#F7E5B8] truncate block">
-                {marketData.market_summary.top_trending_model}
-              </span>
-            </div>
-            <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
-              <span className="text-[#8E8375] block">อัปเดตล่าสุด</span>
-              <span className="font-semibold text-emerald-400 block">
-                {marketData.last_updated_human}
-              </span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
+                <span className="text-[#8E8375] block">ปิดการขายวันนี้</span>
+                <span className="font-bold text-base text-[#F5EFE6]">
+                  {marketData.market_summary.active_listings_today} รายการ
+                </span>
+              </div>
+              <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
+                <span className="text-[#8E8375] block">มูลค่าหมุนเวียนรวม</span>
+                <span className="font-bold text-base text-[#E6B85C]">
+                  {marketData.market_summary.total_volume_formatted}
+                </span>
+              </div>
+              <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
+                <span className="text-[#8E8375] block">พระยอดนิยมสูงสุด</span>
+                <span className="font-bold text-sm text-[#F7E5B8] truncate block">
+                  {marketData.market_summary.top_trending_model}
+                </span>
+              </div>
+              <div className="p-3 rounded-2xl bg-[#12100E]/70 border border-white/5 space-y-1">
+                <span className="text-[#8E8375] block">อัปเดตล่าสุด</span>
+                <span className="font-semibold text-emerald-400 block">
+                  {marketData.last_updated_human}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -431,16 +437,21 @@ export default function MarketBoard({
 
       {/* 4. Recent Sold Feed Section */}
       <section className="bg-[#1C1814] rounded-3xl border border-white/10 p-5 sm:p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
           <div className="flex items-center gap-2">
             <Coins className="w-5 h-5 text-[#E6B85C]" />
-            <h3 className="font-signature text-2xl sm:text-3xl font-bold text-[#F7E5B8]">
-              รายการปิดการขายล่าสุด (Recent Transactions)
-            </h3>
+            <div>
+              <h3 className="font-signature text-2xl sm:text-3xl font-bold text-[#F7E5B8]">
+                ข้อมูลจำลองอ้างอิงราคากลาง (Demo Benchmark)
+              </h3>
+              <p className="text-xs text-[#8E8375]">
+                ตัวอย่างบันทึกการเปลี่ยนมือและราคาปิดประมูลตามสภาพความสมบูรณ์
+              </p>
+            </div>
           </div>
-          <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            ยอดปิดสด
+          <span className="text-xs text-amber-400 font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            ข้อมูลจำลองตลาด (Demo)
           </span>
         </div>
 
@@ -495,6 +506,10 @@ export default function MarketBoard({
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="pt-2 px-1 text-[11px] text-[#7A6F62] leading-relaxed border-t border-white/5">
+          * หมายเหตุ: รายการข้างต้นเป็น &ldquo;ข้อมูลจำลองอ้างอิงราคากลาง (Demo Benchmark)&rdquo; ที่สังเคราะห์ขึ้นเพื่อเป็นแนวทางเปรียบเทียบราคาตามสภาพความสมบูรณ์ มิใช่ยอดซื้อขายจริงจากหน้าร้าน
         </div>
       </section>
 

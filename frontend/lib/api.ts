@@ -562,12 +562,23 @@ export async function analyzeAmulet(params: {
   backFile?: File | null;
   userMode: UserMode;
   mockPresetId?: string;
+  captureSource?: "camera" | "upload";
 }): Promise<AnalyzeResponse> {
   if (params.useMock) {
     await new Promise((r) => setTimeout(r, 1400));
     const preset =
       DEMO_AMULETS.find((a) => a.id === params.mockPresetId) || DEMO_AMULETS[0];
-    return preset.data;
+    const mockData = { ...preset.data };
+    if (!mockData.provenance) {
+      mockData.provenance = {
+        trust_tier: params.captureSource === "camera" ? "tier_1" : "tier_2",
+        label: params.captureSource === "camera" ? "🛡️ Live Camera Verified" : "📁 Standard Upload",
+        detected_software: null,
+        warning: null,
+        capture_source: params.captureSource || "upload",
+      };
+    }
+    return mockData;
   }
 
   const formData = new FormData();
@@ -576,6 +587,7 @@ export async function analyzeAmulet(params: {
     formData.append("back_image", params.backFile);
   }
   formData.append("user_mode", params.userMode);
+  formData.append("capture_source", params.captureSource || "upload");
 
   const res = await fetch(`${params.apiBase.replace(/\/$/, "")}/api/analyze`, {
     method: "POST",

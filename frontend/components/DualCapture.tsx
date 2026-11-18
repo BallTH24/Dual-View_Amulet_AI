@@ -20,10 +20,11 @@ interface DualCaptureProps {
   backFile: File | null;
   frontPreview: string | null;
   backPreview: string | null;
-  onSelectFront: (file: File) => void;
-  onSelectBack: (file: File) => void;
+  onSelectFront: (file: File, source?: "camera" | "upload") => void;
+  onSelectBack: (file: File, source?: "camera" | "upload") => void;
   onLoadDemoImages: () => void;
   onAnalyze: () => void;
+  frontCaptureSource?: "camera" | "upload";
 }
 
 const INTENT_TITLES: Record<FocusIntent, string> = {
@@ -45,6 +46,7 @@ export default function DualCapture({
   onSelectBack,
   onLoadDemoImages,
   onAnalyze,
+  frontCaptureSource = "upload",
 }: DualCaptureProps) {
   const canSubmit = Boolean(frontFile);
   const hasBoth = Boolean(frontFile && backFile);
@@ -106,6 +108,7 @@ export default function DualCapture({
           preview={frontPreview}
           file={frontFile}
           onSelectFile={onSelectFront}
+          captureSource={frontCaptureSource}
         />
         <CaptureSlot
           title="2. ด้านหลัง (ไม่บังคับ / แนะนำเพื่อดูคราบกรุ)"
@@ -155,20 +158,22 @@ function CaptureSlot({
   preview,
   file,
   onSelectFile,
+  captureSource,
 }: {
   title: string;
   hint: string;
   preview: string | null;
   file: File | null;
-  onSelectFile: (file: File) => void;
+  onSelectFile: (file: File, source?: "camera" | "upload") => void;
+  captureSource?: "camera" | "upload";
 }) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, source: "camera" | "upload") => {
     const f = e.target.files?.[0];
-    if (f) onSelectFile(f);
+    if (f) onSelectFile(f, source);
     e.target.value = "";
   };
 
@@ -190,7 +195,7 @@ function CaptureSlot({
     setIsDragOver(false);
     const droppedFile = e.dataTransfer.files?.[0];
     if (droppedFile && droppedFile.type.startsWith("image/")) {
-      onSelectFile(droppedFile);
+      onSelectFile(droppedFile, "upload");
     }
   };
 
@@ -204,8 +209,14 @@ function CaptureSlot({
           <p className="text-xs text-[#9A8F80]">{hint}</p>
         </div>
         {file && (
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
-            ✓ ได้ภาพแล้ว
+          <span
+            className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shrink-0 ${
+              captureSource === "camera"
+                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+            }`}
+          >
+            {captureSource === "camera" ? "🛡️ ถ่ายสดจากกล้อง" : "📁 ไฟล์ภาพ"}
           </span>
         )}
       </div>
@@ -252,14 +263,14 @@ function CaptureSlot({
         type="file"
         accept="image/*"
         capture="environment"
-        onChange={handleFileChange}
+        onChange={(e) => handleFileChange(e, "camera")}
         className="hidden"
       />
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={handleFileChange}
+        onChange={(e) => handleFileChange(e, "upload")}
         className="hidden"
       />
 

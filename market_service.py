@@ -2,6 +2,7 @@ import os
 import time
 import json
 import asyncio
+import email.utils
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -104,6 +105,7 @@ async def fetch_google_news_rss() -> List[Dict[str, Any]]:
     """
     Fetches real-time Thai amulet news from Google News RSS feed:
     Keywords: 'วงการพระเครื่อง OR ประมูลพระเครื่อง'
+    Parses pubDate using email.utils.parsedate_to_datetime and sorts newest-first.
     Falls back gracefully to curated high-quality news if network fails or offline.
     """
     rss_url = (
@@ -122,12 +124,23 @@ async def fetch_google_news_rss() -> List[Dict[str, Any]]:
                 root = ET.fromstring(resp.text)
                 items = root.findall("./channel/item")
                 extracted = []
-                for idx, it in enumerate(items[:5], 1):
+                for idx, it in enumerate(items[:12], 1):
                     raw_title = it.findtext("title", "").strip()
                     link = it.findtext("link", "").strip()
-                    pub_date = it.findtext("pubDate", "").strip()
+                    pub_date_str = it.findtext("pubDate", "").strip()
                     source_elem = it.find("source")
                     source_name = source_elem.text.strip() if source_elem is not None and source_elem.text else "ข่าวออนไลน์"
+
+                    # Parse timestamp for sorting
+                    pub_timestamp = 0.0
+                    formatted_pub = pub_date_str or "ล่าสุดวันนี้"
+                    if pub_date_str:
+                        try:
+                            dt = email.utils.parsedate_to_datetime(pub_date_str)
+                            pub_timestamp = dt.timestamp()
+                            formatted_pub = dt.strftime("%d %b %Y, %H:%M")
+                        except Exception:
+                            pub_timestamp = 0.0
 
                     # Clean headline
                     if " - " in raw_title:
@@ -143,12 +156,22 @@ async def fetch_google_news_rss() -> List[Dict[str, Any]]:
                         "title": clean_title,
                         "source": source_name,
                         "link": link or "https://news.google.com",
-                        "published": pub_date or "ล่าสุดวันนี้",
+                        "published": formatted_pub,
+                        "timestamp": pub_timestamp,
                         "category": "ข่าวสารวงการพระ"
                     })
 
-                if len(extracted) >= 2:
-                    return extracted
+                # Sort by timestamp descending (newest-first)
+                extracted.sort(key=lambda x: x["timestamp"], reverse=True)
+
+                final_news = []
+                for i, itm in enumerate(extracted[:5], 1):
+                    itm_copy = dict(itm)
+                    itm_copy["id"] = f"rss-{i}"
+                    final_news.append(itm_copy)
+
+                if len(final_news) >= 2:
+                    return final_news
     except Exception as e:
         print(f"[*] Live Google News RSS fetch skipped/failed ({e}), using rich cached news.", flush=True)
 

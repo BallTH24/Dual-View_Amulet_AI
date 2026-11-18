@@ -1,19 +1,23 @@
 "use client";
 
 import React from "react";
-import { Camera, TrendingUp, MessageCircleQuestion, ArrowRight, Sparkles } from "lucide-react";
+import { Camera, TrendingUp, MessageCircleQuestion, ArrowRight, Sparkles, Archive } from "lucide-react";
 import { FocusIntent } from "@/lib/types";
 
 interface HomeChoicesProps {
   onChooseIntent: (intent: FocusIntent) => void;
   onQuickInspectDemo: () => void;
   onOpenMarket?: () => void;
+  onOpenVault?: () => void;
+  vaultCount?: number;
 }
 
 export default function HomeChoices({
   onChooseIntent,
   onQuickInspectDemo,
   onOpenMarket,
+  onOpenVault,
+  vaultCount = 0,
 }: HomeChoicesProps) {
   return (
     <div className="max-w-3xl mx-auto py-4 sm:py-8 space-y-8">
@@ -109,6 +113,35 @@ export default function HomeChoices({
             </div>
           </button>
         </div>
+
+        {/* Choice 4: Digital Amulet Vault */}
+        <button
+          type="button"
+          onClick={onOpenVault}
+          className="relative z-10 w-full text-left group rounded-3xl bg-[#1C1814] border border-white/10 hover:border-[#E6B85C]/50 p-5 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] flex items-center justify-between gap-4 cursor-pointer touch-manipulation"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-[#E6B85C]/15 text-[#E6B85C] flex items-center justify-center">
+              <Archive className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-signature text-2xl font-bold text-[#F5EFE6] group-hover:text-[#F7E5B8] transition">
+                  4. ตู้พระส่วนตัว &amp; ติดตามพอร์ตพระ
+                </h3>
+                {vaultCount > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#E6B85C] text-[#18130D] text-[11px] font-bold">
+                    {vaultCount} องค์
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-[#B8AD9E] mt-0.5">
+                ดูพระเครื่องที่คุณบันทึกไว้ เช็คมูลค่าพอร์ตรวม และเปิดดูใบสรุปผลสแกน AI ย้อนหลัง
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-[#E6B85C] shrink-0 group-hover:translate-x-1 transition" />
+        </button>
       </section>
 
       {/* Quick 1-click Demo Preview Link */}

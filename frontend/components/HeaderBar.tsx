@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Settings2, Wifi, Sparkles, ArrowLeft, TrendingUp } from "lucide-react";
+import { Settings2, Wifi, Sparkles, ArrowLeft, TrendingUp, Archive } from "lucide-react";
 import { HealthResponse, ScreenStep, UserMode } from "@/lib/types";
 
 interface HeaderBarProps {
@@ -15,6 +15,8 @@ interface HeaderBarProps {
   health: HealthResponse | null;
   onGoHome: () => void;
   onOpenMarket?: () => void;
+  onOpenVault?: () => void;
+  vaultCount?: number;
 }
 
 export default function HeaderBar({
@@ -28,6 +30,8 @@ export default function HeaderBar({
   health,
   onGoHome,
   onOpenMarket,
+  onOpenVault,
+  vaultCount = 0,
 }: HeaderBarProps) {
   const [showSettings, setShowSettings] = useState(false);
 
@@ -67,6 +71,30 @@ export default function HeaderBar({
 
           {/* Minimal Right Controls */}
           <div className="relative z-10 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={step === "vault" ? onGoHome : onOpenVault}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs transition cursor-pointer touch-manipulation active:scale-[0.98] ${
+                step === "vault"
+                  ? "bg-[#E6B85C] text-[#18130D] font-bold"
+                  : "bg-white/5 hover:bg-white/10 text-[#F5EFE6] border border-white/10"
+              }`}
+            >
+              <Archive className={`w-3.5 h-3.5 ${step === "vault" ? "text-[#18130D]" : "text-[#E6B85C]"}`} />
+              <span className="text-xs font-semibold">ตู้พระ</span>
+              {vaultCount > 0 && (
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    step === "vault"
+                      ? "bg-[#18130D] text-[#E6B85C]"
+                      : "bg-[#E6B85C] text-[#18130D]"
+                  }`}
+                >
+                  {vaultCount}
+                </span>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={step === "market" ? onGoHome : onOpenMarket}

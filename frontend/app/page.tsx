@@ -8,6 +8,7 @@ import DualCapture from "@/components/DualCapture";
 import ProcessingScreen from "@/components/ProcessingScreen";
 import ResultDashboard from "@/components/ResultDashboard";
 import MarketBoard from "@/components/MarketBoard";
+import AmuletVault, { loadVaultFromStorage } from "@/components/AmuletVault";
 import {
   AnalyzeResponse,
   FocusIntent,
@@ -93,6 +94,8 @@ export default function HomePage() {
   const [backFile, setBackFile] = useState<File | null>(null);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview] = useState<string | null>(null);
+  const [frontCaptureSource, setFrontCaptureSource] = useState<"camera" | "upload">("upload");
+  const [vaultCount, setVaultCount] = useState<number>(0);
 
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -106,6 +109,8 @@ export default function HomePage() {
     if (detected !== apiBase) {
       setApiBase(detected);
     }
+    // Load initial vault count from localStorage
+    setVaultCount(loadVaultFromStorage().length);
   }, []);
 
   // Auto-detect live FastAPI backend on mount; fallback cleanly to Mock if unreachable
@@ -131,9 +136,10 @@ export default function HomePage() {
     setStep("capture");
   };
 
-  const handleSelectFront = (file: File) => {
+  const handleSelectFront = (file: File, source?: "camera" | "upload") => {
     setFrontFile(file);
     setFrontPreview(URL.createObjectURL(file));
+    if (source) setFrontCaptureSource(source);
     setErrorMsg(null);
   };
 
@@ -150,7 +156,7 @@ export default function HomePage() {
       createSampleAmuletFile("front", preset.data.amulet_info.name),
       createSampleAmuletFile("back", preset.data.amulet_info.name),
     ]);
-    handleSelectFront(f);
+    handleSelectFront(f, "upload");
     handleSelectBack(b);
   };
 
@@ -163,6 +169,7 @@ export default function HomePage() {
     ]);
     setFrontFile(f);
     setBackFile(b);
+    setFrontCaptureSource("camera");
     setFrontPreview(URL.createObjectURL(f));
     setBackPreview(URL.createObjectURL(b));
     setStep("processing");
@@ -175,6 +182,7 @@ export default function HomePage() {
         backFile: b,
         userMode,
         mockPresetId: selectedPresetId,
+        captureSource: "camera",
       });
       setResult(data);
       setStep("result");
@@ -186,6 +194,7 @@ export default function HomePage() {
         backFile: b,
         userMode,
         mockPresetId: selectedPresetId,
+        captureSource: "camera",
       });
       setResult(data);
       setStep("result");
@@ -205,6 +214,7 @@ export default function HomePage() {
         backFile,
         userMode,
         mockPresetId: selectedPresetId,
+        captureSource: frontCaptureSource,
       });
       setResult(data);
       setStep("result");
@@ -251,6 +261,8 @@ export default function HomePage() {
         health={health}
         onGoHome={handleGoHome}
         onOpenMarket={handleOpenMarket}
+        onOpenVault={() => setStep("vault")}
+        vaultCount={vaultCount}
       />
 
       <main className="relative z-10 flex-1 w-full px-4 sm:px-6 py-6 sm:py-8">
@@ -265,6 +277,19 @@ export default function HomePage() {
             onChooseIntent={handleChooseIntent}
             onQuickInspectDemo={handleQuickInspectDemo}
             onOpenMarket={handleOpenMarket}
+            onOpenVault={() => setStep("vault")}
+            vaultCount={vaultCount}
+          />
+        )}
+
+        {step === "vault" && (
+          <AmuletVault
+            onGoBack={handleGoHome}
+            onInspectNew={() => {
+              setIntent("inspect");
+              setStep("capture");
+            }}
+            onVaultCountChange={(cnt) => setVaultCount(cnt)}
           />
         )}
 
@@ -290,6 +315,7 @@ export default function HomePage() {
             backFile={backFile}
             frontPreview={frontPreview}
             backPreview={backPreview}
+            frontCaptureSource={frontCaptureSource}
             onSelectFront={handleSelectFront}
             onSelectBack={handleSelectBack}
             onLoadDemoImages={handleLoadDemoImages}
@@ -312,6 +338,7 @@ export default function HomePage() {
               setCertSubmitted(false);
               setShowCertModal(true);
             }}
+            onSavedToVault={() => setVaultCount(loadVaultFromStorage().length)}
           />
         )}
       </main>

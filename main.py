@@ -7,7 +7,7 @@ import base64
 import asyncio
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ExifTags
 
 from dotenv import load_dotenv
 
@@ -155,7 +155,67 @@ class ChatResponse(BaseModel):
 # ---------------------------------------------------------
 # Helper Functions: OpenCV CLAHE, EXIF & Defect Analysis
 # ---------------------------------------------------------
-MIN_RECOGNITION_CONF = 0.55  # Strict recognition gate for YOLOv11 (best.pt)
+MIN_RECOGNITION_CONF = 0.68  # Strict recognition gate for YOLOv11 (best.pt) calibrated at F1-Curve peak
+
+def inspect_image_provenance(image_bytes: bytes, capture_source: str = "upload") -> Dict[str, Any]:
+    """
+    Image Provenance & EXIF Forensics:
+    - Inspects EXIF metadata for editing software (Photoshop, Snapseed, Lightroom, GIMP, Meitu, Canva, etc.)
+    - Assigns Trust Tier:
+      * tier_1: Live camera capture with clean EXIF (🛡️ Live Camera Verified)
+      * tier_2: Standard file upload with clean EXIF (📁 Standard Upload)
+      * flagged: Edited / synthetic software detected in EXIF (⚠️ Edited Photo Detected)
+    """
+    flagged_software = None
+    known_editing_tools = [
+        "photoshop", "snapseed", "lightroom", "gimp", "meitu",
+        "canva", "picsart", "vsco", "facetune", "pixlr",
+        "fotor", "midjourney", "stable diffusion", "dall-e",
+        "affinity", "pixelmator", "procreate", "adobe"
+    ]
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as pil_img:
+            exif_data = pil_img._getexif()
+            if exif_data:
+                for tag_id, value in exif_data.items():
+                    tag_name = ExifTags.TAGS.get(tag_id, str(tag_id))
+                    if tag_name in ["Software", "ProcessingSoftware", "ImageDescription", "UserComment", "Artist"]:
+                        val_str = str(value).lower()
+                        for tool in known_editing_tools:
+                            if tool in val_str:
+                                flagged_software = str(value).strip()
+                                break
+                    if flagged_software:
+                        break
+    except Exception as e:
+        print(f"[*] EXIF forensics note: {e}")
+
+    norm_source = "camera" if capture_source and "cam" in capture_source.lower() else "upload"
+
+    if flagged_software:
+        return {
+            "trust_tier": "flagged",
+            "label": "⚠️ Edited Photo Detected",
+            "detected_software": flagged_software,
+            "warning": f"ตรวจพบร่องรอยการบันทึก/ตกแต่งผ่านซอฟต์แวร์ ({flagged_software}) อาจส่งผลต่อการตรวจจับตำหนิและสีผิวพระ",
+            "capture_source": norm_source
+        }
+    elif norm_source == "camera":
+        return {
+            "trust_tier": "tier_1",
+            "label": "🛡️ Live Camera Verified",
+            "detected_software": None,
+            "warning": None,
+            "capture_source": "camera"
+        }
+    else:
+        return {
+            "trust_tier": "tier_2",
+            "label": "📁 Standard Upload",
+            "detected_software": None,
+            "warning": None,
+            "capture_source": "upload"
+        }
 
 def decode_and_orient_image(image_bytes: bytes) -> Optional[np.ndarray]:
     """
@@ -483,33 +543,35 @@ def detect_defects_and_condition(
 def determine_amulet_model(
     front_results: List[Any],
     img_shape: tuple[int, int]
-) -> tuple[bool, Optional[str], float, Optional[List[int]], str]:
+) -> tuple[bool, Optional[str], float, Optional[List[int]], str, Optional[Dict[str, Any]]]:
     """
     Strict Recognition Gate for YOLOv11 (best.pt):
     - Rejects if no boxes detected.
-    - Rejects if highest confidence < MIN_RECOGNITION_CONF (0.55).
+    - Rejects if highest confidence < MIN_RECOGNITION_CONF (0.68).
     - Rejects if bounding box area < 5% of total image area.
     - Rejects if detected class does not match any of the 7 supported amulet models in database.
     - NO FALLBACK GUESSING ALLOWED.
-    Returns: (is_recognized, model_id, confidence, best_box, reason)
+    - Somdej Ambiguity Gate: If top-2 predictions are both Somdej family
+      ('somdej_watrakang', 'somdej_bangkhunprom', 'somdej_ketchaiyo') and abs(conf1 - conf2) < 0.15,
+      triggers ambiguity_warning.
+    Returns: (is_recognized, model_id, confidence, best_box, reason, ambiguity_warning)
     """
     h, w = img_shape[:2]
     total_area = float(h * w)
 
     if not front_results or len(front_results) == 0:
-        return False, "unknown", 0.0, None, "ไม่พบผลลัพธ์จากโมเดล YOLO"
+        return False, "unknown", 0.0, None, "ไม่พบผลลัพธ์จากโมเดล YOLO", None
 
     res = front_results[0]
     boxes = res.boxes
     if boxes is None or len(boxes) == 0:
-        return False, "unknown", 0.0, None, "ตรวจไม่พบกรอบพระเครื่องในภาพ"
+        return False, "unknown", 0.0, None, "ตรวจไม่พบกรอบพระเครื่องในภาพ", None
 
     names_dict = res.names
     db_keys = sorted(list(AMULETS_DB.keys()), key=len, reverse=True)
 
-    best_match_key = None
-    best_conf = 0.0
-    best_box = None
+    # Collect unique matched candidates by highest confidence per amulet model
+    model_candidates: Dict[str, Dict[str, Any]] = {}
     highest_raw_conf = 0.0
 
     for b in boxes:
@@ -530,29 +592,41 @@ def determine_amulet_model(
                     matched_k = k
                     break
 
-        if matched_k and conf > best_conf:
-            best_conf = conf
-            best_match_key = matched_k
-            best_box = [int(v) for v in b.xyxy[0].tolist()]
+        if matched_k:
+            if matched_k not in model_candidates or conf > model_candidates[matched_k]["conf"]:
+                model_candidates[matched_k] = {
+                    "key": matched_k,
+                    "conf": conf,
+                    "box": [int(v) for v in b.xyxy[0].tolist()]
+                }
+
+    sorted_candidates = sorted(model_candidates.values(), key=lambda x: x["conf"], reverse=True)
 
     # Check 1: Must match one of the 7 database models
-    if best_match_key is None:
+    if not sorted_candidates:
         return (
             False,
             "unknown",
             round(highest_raw_conf * 100.0, 1),
             None,
-            "ไม่พบพิมพ์พระในฐานข้อมูล 7 รุ่นมาตรฐานที่ระบบรองรับ"
+            "ไม่พบพิมพ์พระในฐานข้อมูล 7 รุ่นมาตรฐานที่ระบบรองรับ",
+            None
         )
 
-    # Check 2: Confidence must be >= MIN_RECOGNITION_CONF (0.55)
+    best_match = sorted_candidates[0]
+    best_match_key = best_match["key"]
+    best_conf = best_match["conf"]
+    best_box = best_match["box"]
+
+    # Check 2: Confidence must be >= MIN_RECOGNITION_CONF (0.68)
     if best_conf < MIN_RECOGNITION_CONF:
         return (
             False,
             "unknown",
             round(best_conf * 100.0, 1),
             best_box,
-            f"ความมั่นใจของโมเดลต่ำกว่าเกณฑ์ความปลอดภัย ({round(best_conf * 100.0, 1)}% < 55%)"
+            f"ความมั่นใจของโมเดลต่ำกว่าเกณฑ์ความปลอดภัย ({round(best_conf * 100.0, 1)}% < 68%)",
+            None
         )
 
     # Check 3: Bounding box area must be >= 5% of total image area
@@ -565,10 +639,36 @@ def determine_amulet_model(
             "unknown",
             round(best_conf * 100.0, 1),
             best_box,
-            f"ขนาดกรอบพระเล็กผิดปกติ ({round(box_pct, 1)}% < 5% ของพื้นที่ภาพ)"
+            f"ขนาดกรอบพระเล็กผิดปกติ ({round(box_pct, 1)}% < 5% ของพื้นที่ภาพ)",
+            None
         )
 
-    return True, best_match_key, round(best_conf * 100.0, 1), best_box, "ผ่านเกณฑ์การคัดกรองพิมพ์พระ"
+    # Somdej Ambiguity Gate
+    SOMDEJ_FAMILY = {"somdej_watrakang", "somdej_bangkhunprom", "somdej_ketchaiyo"}
+    ambiguity_warning: Optional[Dict[str, Any]] = None
+
+    if len(sorted_candidates) >= 2:
+        cand1 = sorted_candidates[0]
+        cand2 = sorted_candidates[1]
+        k1, conf1 = cand1["key"], cand1["conf"]
+        k2, conf2 = cand2["key"], cand2["conf"]
+
+        if k1 in SOMDEJ_FAMILY and k2 in SOMDEJ_FAMILY and abs(conf1 - conf2) < 0.15:
+            info1 = AMULETS_DB.get(k1, {})
+            info2 = AMULETS_DB.get(k2, {})
+            name1 = info1.get("name", k1)
+            name2 = info2.get("name", k2)
+            p1 = info1.get("base_price_thb", 0)
+            p2 = info2.get("base_price_thb", 0)
+            ambiguity_warning = {
+                "is_ambiguous": True,
+                "primary_candidate": name1,
+                "secondary_candidate": name2,
+                "price_range_note": f"ช่วงราคาระหว่าง {name1} (ประมาณ {p1:,} บาท) และ {name2} (ประมาณ {p2:,} บาท)",
+                "expert_advice": "เนื้อหาพิมพ์ทรงใกล้เคียงกันมาก แนะนำตรวจมวลสารด้านข้างและคราบกรุเพิ่มเติมโดยผู้เชี่ยวชาญ"
+            }
+
+    return True, best_match_key, round(best_conf * 100.0, 1), best_box, "ผ่านเกณฑ์การคัดกรองพิมพ์พระ", ambiguity_warning
 
 def generate_typhoon_summary(
     amulet: Dict[str, Any],
@@ -578,13 +678,15 @@ def generate_typhoon_summary(
     defect_count: int,
     total_conf: float,
     defects_list: Optional[List[Dict[str, Any]]] = None,
-    has_back_image: bool = True
+    has_back_image: bool = True,
+    ambiguity_warning: Optional[Dict[str, Any]] = None
 ) -> str:
     """
     Calls Typhoon LLM (OpenAI-compatible) with 8.0-second timeout.
     Answers in Thai, concise, direct to the point, max 3-4 lines:
     - b2c: explains front mold keypoints, (back yantra/kraap-gru if present), defect locations, and recommends best province/market.
     - b2b: analyzes defect spots, pawn/holding risk, and commercial valuation margin.
+    - Handles Somdej Ambiguity warning when detected.
     Falls back gracefully to rich JSON-derived text if key is missing or call fails.
     """
     name = amulet.get("name", "พระเครื่อง")
@@ -608,6 +710,13 @@ def generate_typhoon_summary(
             defect_items.append(f"{idx}) {t_name} ({s_name} พิกัด X:{x_p}%, Y:{y_p}%, {sev})")
     defect_summary_text = " | ".join(defect_items) if defect_items else "ไม่พบจุดตำหนิรุนแรง ผิวพระสมบูรณ์ตามอายุ"
 
+    ambiguity_note = ""
+    if ambiguity_warning and ambiguity_warning.get("is_ambiguous"):
+        ambiguity_note = (
+            f"\n⚠️ [คำเตือนพิมพ์พระใกล้เคียง]: พิมพ์ทรงใกล้เคียงกับ {ambiguity_warning.get('secondary_candidate')} "
+            f"({ambiguity_warning.get('price_range_note', '')}) แนะนำตรวจสอบมวลสารด้านข้างและคราบกรุเพิ่มเติมโดยผู้เชี่ยวชาญ"
+        )
+
     # 1. Fallback text (concise 3-4 lines)
     if user_mode.lower() == "b2b":
         risk_text = f"จุดตรวจความเสี่ยง: หน้าต้องคมชัดตามพิมพ์ '{front_kp[:40]}...'"
@@ -617,7 +726,7 @@ def generate_typhoon_summary(
             f"【วิเคราะห์เชิงพาณิชย์ B2B】{name} ({year}) สภาพสมบูรณ์ {condition_pct}% พบตำหนิ {defect_count} จุด ({defect_summary_text})\n"
             f"ราคากลางประเมิน {estimated_price_thb:,} บาท | กรอบรับจำนำปลอดภัย (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
             f"{risk_text}\n"
-            f"ตลาดปล่อยสภาพคล่องสูงสุด: {region}"
+            f"ตลาดปล่อยสภาพคล่องสูงสุด: {region}{ambiguity_note}"
         )
     else:
         back_mention = f"\nด้านหลังเร่งมิติ CLAHE ตรวจสอบ: {back_kp[:80]}..." if has_back_image else ""
@@ -625,7 +734,7 @@ def generate_typhoon_summary(
             f"【จุดสังเกตสำหรับนักสะสม B2C】{name} ({year}) วัด {temple} สภาพสมบูรณ์ {condition_pct}%\n"
             f"สภาพตำหนิที่ตรวจพบ: {defect_summary_text}\n"
             f"ด้านหน้าสังเกตพิมพ์ทรง: {front_kp[:90]}...{back_mention}\n"
-            f"พื้นที่แนะนำปล่อยเช่า: {region} ({reason})"
+            f"พื้นที่แนะนำปล่อยเช่า: {region} ({reason}){ambiguity_note}"
         )
 
     client = get_typhoon_client()
@@ -634,6 +743,13 @@ def generate_typhoon_summary(
 
     # 2. Prompts tailored to b2c and b2b (3-4 concise complete sentences)
     scan_scope = "ครบสองด้าน (หน้า-หลัง)" if has_back_image else "เฉพาะด้านหน้า (ไม่มีรูปด้านหลัง)"
+    ambiguity_prompt_chunk = ""
+    if ambiguity_warning and ambiguity_warning.get("is_ambiguous"):
+        ambiguity_prompt_chunk = (
+            f"\n[คำเตือนความกำกวมพิมพ์พระ]: ตรวจพบความใกล้เคียงระหว่าง '{ambiguity_warning.get('primary_candidate')}' "
+            f"และ '{ambiguity_warning.get('secondary_candidate')}' ให้สรุปข้อสังเกตจุดต่างและแจ้งเตือนให้ตรวจมวลสารด้านข้าง/คราบกรุอย่างระมัดระวัง"
+        )
+
     if user_mode.lower() == "b2b":
         system_prompt = (
             "คุณคือที่ปรึกษาประเมินมูลค่าพระเครื่องสำหรับร้านพระและโรงรับจำนำ (B2B) "
@@ -646,7 +762,7 @@ def generate_typhoon_summary(
             f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
             f"ราคากลางประเมิน: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
             f"กรอบรับจำนำแนะนำ (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
-            f"จุดสังเกตหน้า: {front_kp}{back_line}\n"
+            f"จุดสังเกตหน้า: {front_kp}{back_line}{ambiguity_prompt_chunk}\n"
             "สรุปวิเคราะห์จุดตำหนิที่ตรวจพบ ความเสี่ยงในการรับเช่า และกรอบราคาพาณิชย์ ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
     else:
@@ -659,7 +775,7 @@ def generate_typhoon_summary(
         user_prompt = (
             f"พระเครื่อง: {name} ({temple}, {year}) [สแกน: {scan_scope}]\n"
             f"สภาพความสมบูรณ์: {condition_pct}% | ตรวจพบจุดตำหนิ {defect_count} จุด: {defect_summary_text}\n"
-            f"จุดสังเกตด้านหน้า: {front_kp}{back_line}\n"
+            f"จุดสังเกตด้านหน้า: {front_kp}{back_line}{ambiguity_prompt_chunk}\n"
             f"พื้นที่แนะนำ: {region} ({reason})\n"
             "สรุปจุดสังเกตพิมพ์ทรงหน้า (และคราบกรุหลังถ้ามี) พร้อมระบุสภาพจุดตำหนิที่ตรวจพบ และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
@@ -840,23 +956,25 @@ async def health_check():
 async def analyze_amulet(
     front_image: UploadFile = File(...),
     back_image: Optional[UploadFile] = File(None),
-    user_mode: str = Form("b2c")
+    user_mode: str = Form("b2c"),
+    capture_source: str = Form("upload")
 ):
     """
     Scan Dual-View or Single-View Amulet:
-    1. Read front_image (required) and back_image (optional).
+    1. Read front_image (required) and back_image (optional) + inspect image provenance/EXIF.
     2. YOLOv11 (best.pt) inference strictly on front_image ONLY (never predicts class on back_image).
     3. If back_image is provided, apply OpenCV CLAHE and CV defect detection (side="back").
     4. Condition grading (% integrity) from defects vs amulet area.
     5. Market valuation: base_price_thb * (condition_pct / 100).
-    6. Typhoon AI analysis (timeout=8.0s) with mode-specific advice & fallback.
+    6. Somdej Ambiguity Gate check & Typhoon AI analysis (timeout=8.0s) with mode-specific advice & fallback.
     """
     start_time = time.time()
     load_database()
 
-    # 1. Read & Decode Front Image (Required)
+    # 1. Read & Decode Front Image (Required) and Inspect EXIF Forensics
     try:
         front_bytes = await front_image.read()
+        provenance = inspect_image_provenance(front_bytes, capture_source)
         front_bgr = await asyncio.to_thread(decode_and_orient_image, front_bytes)
         if front_bgr is None:
             raise HTTPException(status_code=400, detail="Invalid front image file format. Unable to decode.")
@@ -889,8 +1007,8 @@ async def analyze_amulet(
     # 3. YOLO11 Inference strictly on Front Image ONLY
     f_results = await asyncio.to_thread(run_single_inference, front_bgr)
 
-    # 4. Strict Recognition Gate
-    is_recognized, model_id, front_conf, amulet_box, gate_reason = determine_amulet_model(
+    # 4. Strict Recognition Gate & Somdej Ambiguity Gate
+    is_recognized, model_id, front_conf, amulet_box, gate_reason, ambiguity_warning = determine_amulet_model(
         f_results, front_bgr.shape[:2]
     )
 
@@ -954,7 +1072,9 @@ async def analyze_amulet(
                 "device": DEVICE,
                 "model_used": MODEL_NAME,
                 "clahe_applied_on_back": bool(has_back_image)
-            }
+            },
+            "provenance": provenance,
+            "ambiguity_warning": None
         }
 
     amulet_info = AMULETS_DB.get(model_id, {})
@@ -1024,7 +1144,8 @@ async def analyze_amulet(
         defect_count=defect_count,
         total_conf=total_conf,
         defects_list=total_defects[:5],
-        has_back_image=has_back_image
+        has_back_image=has_back_image,
+        ambiguity_warning=ambiguity_warning
     )
 
     elapsed_ms = round((time.time() - start_time) * 1000, 1)
@@ -1076,7 +1197,9 @@ async def analyze_amulet(
             "device": DEVICE,
             "model_used": MODEL_NAME,
             "clahe_applied_on_back": bool(has_back_image)
-        }
+        },
+        "provenance": provenance,
+        "ambiguity_warning": ambiguity_warning
     }
 
 @app.post("/api/chat", response_model=ChatResponse)

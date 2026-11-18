@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   MapPin,
   Award,
@@ -17,12 +17,15 @@ import {
   Printer,
   X,
   ShieldCheck,
+  Archive,
+  BookmarkCheck,
 } from "lucide-react";
 import {
   AnalyzeResponse,
   ChatMessage,
   DefectSpot,
   UserMode,
+  VaultItem,
 } from "@/lib/types";
 import {
   chatWithTyphoon,
@@ -39,6 +42,43 @@ interface ResultDashboardProps {
   useMock: boolean;
   onScanAgain: () => void;
   onOpenCertModal: () => void;
+  onSavedToVault?: () => void;
+}
+
+async function downscaleImage(src: string, maxSize = 400): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) {
+            h = Math.round((h * maxSize) / w);
+            w = maxSize;
+          } else {
+            w = Math.round((w * maxSize) / h);
+            h = maxSize;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, w);
+        canvas.height = Math.max(1, h);
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.75));
+        } else {
+          resolve(src);
+        }
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    } catch {
+      resolve(src);
+    }
+  });
 }
 
 export default function ResultDashboard({
@@ -50,6 +90,7 @@ export default function ResultDashboard({
   useMock,
   onScanAgain,
   onOpenCertModal,
+  onSavedToVault,
 }: ResultDashboardProps) {
   const defects = extractDefectSpots(result);
   const [selectedDefectId, setSelectedDefectId] = useState<number | null>(
@@ -65,6 +106,75 @@ export default function ResultDashboard({
   const [question, setQuestion] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [copiedCaption, setCopiedCaption] = useState(false);
+
+  const [isSavedToVault, setIsSavedToVault] = useState(false);
+  const [savingVault, setSavingVault] = useState(false);
+
+  // Check if item is already saved in vault
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("amulet_vault_v1");
+      if (raw) {
+        const list: VaultItem[] = JSON.parse(raw);
+        const exists = list.some(
+          (it) => it.model_id === result.model_id && Math.abs(it.condition_pct - result.condition.condition_pct) < 0.1
+        );
+        if (exists) setIsSavedToVault(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, [result]);
+
+  const handleSaveToVault = async () => {
+    if (isSavedToVault || savingVault) return;
+    setSavingVault(true);
+    try {
+      const frontThumb = frontPreview ? await downscaleImage(frontPreview, 400) : "";
+      const backThumb = displayedBackImage ? await downscaleImage(displayedBackImage, 400) : null;
+
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString("th-TH", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const vaultItem: VaultItem = {
+        id: `vault-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        saved_at: now.toISOString(),
+        saved_at_formatted: formattedDate,
+        name: result.amulet_info.name,
+        temple: result.amulet_info.temple,
+        year: result.amulet_info.year,
+        model_id: result.model_id,
+        condition_pct: result.condition.condition_pct,
+        condition_grade: result.condition.grade,
+        estimated_price_thb: result.pricing.estimated_price_thb,
+        defect_count: result.condition.defect_count,
+        front_thumbnail: frontThumb,
+        back_thumbnail: backThumb,
+        trust_tier: result.provenance?.trust_tier || "tier_2",
+        trust_label: result.provenance?.label || "📁 Standard Upload",
+        detected_software: result.provenance?.detected_software || null,
+        ambiguity_warning: result.ambiguity_warning || null,
+        analyze_response: result,
+      };
+
+      const existingRaw = localStorage.getItem("amulet_vault_v1");
+      const list: VaultItem[] = existingRaw ? JSON.parse(existingRaw) : [];
+      list.unshift(vaultItem);
+      localStorage.setItem("amulet_vault_v1", JSON.stringify(list));
+      setIsSavedToVault(true);
+      onSavedToVault?.();
+    } catch (e) {
+      console.error("Failed to save to vault:", e);
+    } finally {
+      setSavingVault(false);
+    }
+  };
 
   const formatTHB = (val: number) =>
     new Intl.NumberFormat("th-TH").format(val);
@@ -256,6 +366,33 @@ export default function ResultDashboard({
             <p className="text-xs sm:text-sm text-[#B8AD9E]">
               {result.amulet_info.temple} • {result.amulet_info.year}
             </p>
+
+            {/* Image Provenance & EXIF Forensics Trust Tier Badge */}
+            {result.provenance && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${
+                    result.provenance.trust_tier === "flagged"
+                      ? "bg-amber-500/20 text-amber-300 border-amber-400/50"
+                      : result.provenance.trust_tier === "tier_1"
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-400/50"
+                      : "bg-sky-500/20 text-sky-300 border-sky-400/50"
+                  }`}
+                >
+                  {result.provenance.label}
+                </span>
+                {result.provenance.detected_software && (
+                  <span className="text-[11px] text-amber-300">
+                    โปรแกรม: {result.provenance.detected_software}
+                  </span>
+                )}
+                {result.provenance.warning && (
+                  <span className="text-[11px] text-amber-200/90 block w-full mt-0.5">
+                    * {result.provenance.warning}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Minimal View Toggles */}
@@ -446,6 +583,29 @@ export default function ResultDashboard({
         )}
       </section>
 
+      {/* Somdej Ambiguity Warning Banner if applicable */}
+      {result.ambiguity_warning && result.ambiguity_warning.is_ambiguous && (
+        <section className="bg-gradient-to-r from-amber-500/15 via-[#1C1814] to-amber-500/10 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 space-y-3 shadow-xl">
+          <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span>แจ้งเตือนพิมพ์พระใกล้เคียง (Somdej Ambiguity Gate)</span>
+          </div>
+          <p className="text-xs sm:text-sm text-[#F5EFE6] leading-relaxed">
+            โมเดลตรวจพบว่าองค์พระมีลักษณะพิมพ์ทรงใกล้เคียงกันมากระหว่าง{" "}
+            <strong className="text-[#F7E5B8]">{result.ambiguity_warning.primary_candidate}</strong> (อันดับ 1) และ{" "}
+            <strong className="text-[#F7E5B8]">{result.ambiguity_warning.secondary_candidate}</strong> (อันดับ 2) โดยมีค่าความมั่นใจห่างกันไม่เกิน 15%
+          </p>
+          <div className="p-3.5 rounded-2xl bg-[#12100E]/85 border border-amber-500/25 text-xs space-y-1.5">
+            <div className="text-amber-300 font-semibold">
+              📊 {result.ambiguity_warning.price_range_note}
+            </div>
+            <div className="text-[#C7BCAE]">
+              💡 <strong>คำแนะนำผู้เชี่ยวชาญ:</strong> {result.ambiguity_warning.expert_advice}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 2. Price, Completeness % & Best Region Card */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-[#1C1814] rounded-3xl border border-white/10 p-5 space-y-3">
@@ -577,6 +737,29 @@ export default function ResultDashboard({
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
+            onClick={handleSaveToVault}
+            disabled={isSavedToVault || savingVault}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition cursor-pointer ${
+              isSavedToVault
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                : "bg-[#E6B85C]/15 hover:bg-[#E6B85C]/25 text-[#E6B85C] border border-[#E6B85C]/40"
+            }`}
+          >
+            {isSavedToVault ? (
+              <>
+                <BookmarkCheck className="w-4 h-4 text-emerald-400" />
+                <span>บันทึกในตู้พระแล้ว</span>
+              </>
+            ) : (
+              <>
+                <Archive className="w-4 h-4 text-[#E6B85C]" />
+                <span>{savingVault ? "กำลังบันทึก..." : "💾 บันทึกเข้าตู้พระส่วนตัว"}</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setShowCertCard(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-xs sm:text-sm font-semibold text-[#F7E5B8] border border-[#E6B85C]/40 transition cursor-pointer"
           >
@@ -602,11 +785,24 @@ export default function ResultDashboard({
             {/* Header */}
             <div className="flex items-start justify-between border-b border-[#E6B85C]/30 pb-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2 text-[#E6B85C]">
+                <div className="flex flex-wrap items-center gap-2 text-[#E6B85C]">
                   <ShieldCheck className="w-6 h-6" />
                   <span className="text-xs uppercase tracking-widest font-bold">
                     Official AI Inspection Certificate
                   </span>
+                  {result.provenance && (
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        result.provenance.trust_tier === "flagged"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-400/50"
+                          : result.provenance.trust_tier === "tier_1"
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-400/50"
+                          : "bg-sky-500/20 text-sky-300 border-sky-400/50"
+                      }`}
+                    >
+                      {result.provenance.label}
+                    </span>
+                  )}
                 </div>
                 <h3 className="font-signature text-2xl sm:text-3xl font-bold text-[#F7E5B8]">
                   ใบรายงานผลการตรวจส่องพระเครื่อง
@@ -614,6 +810,11 @@ export default function ResultDashboard({
                 <p className="text-xs text-[#9A8F80]">
                   รหัสอ้างอิง: #SCAN-{result.model_id.toUpperCase()}-2569 • ตรวจสอบโดย Dual-View Amulet AI
                 </p>
+                {result.provenance?.warning && (
+                  <p className="text-[11px] text-amber-300/90 font-medium pt-0.5">
+                    * {result.provenance.warning}
+                  </p>
+                )}
               </div>
 
               <button
