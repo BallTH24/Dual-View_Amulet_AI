@@ -241,11 +241,11 @@ def determine_amulet_model(
     back_confs: List[float]
 ) -> tuple[str, float, float]:
     """
-    Matches the detected class to one of the 8 amulets in the database.
-    If classes don't explicitly match (e.g. running default yolo11s.pt),
-    heuristically selects a well-matched model with realistic confidence.
+    Matches the detected class to one of the 7 trained amulets in the database:
+    somdej_watrakang, somdej_bangkhunprom, somdej_ketchaiyo,
+    phra_nangphaya, phra_phong_suphan, phra_rod, phra_sumkor.
     """
-    db_keys = list(AMULETS_DB.keys())
+    db_keys = sorted(list(AMULETS_DB.keys()), key=len, reverse=True)
     if not db_keys:
         return "somdej_watrakang", 92.5, 94.0
 
@@ -255,21 +255,34 @@ def determine_amulet_model(
     b_conf = 93.8
 
     for cls_name, conf in zip(front_classes, front_confs):
+        c_clean = cls_name.lower().replace("_front", "").replace("_back", "").strip()
+        if c_clean in AMULETS_DB:
+            matched_key = c_clean
+            f_conf = max(conf * 100.0, 75.0)
+            break
         for k in db_keys:
-            if k in cls_name.lower():
+            if k in c_clean:
                 matched_key = k
-                f_conf = max(conf * 100.0, 85.0)
+                f_conf = max(conf * 100.0, 75.0)
                 break
         if matched_key:
             break
 
     for cls_name, conf in zip(back_classes, back_confs):
+        c_clean = cls_name.lower().replace("_front", "").replace("_back", "").strip()
+        if c_clean in AMULETS_DB:
+            if not matched_key:
+                matched_key = c_clean
+            b_conf = max(conf * 100.0, 75.0)
+            break
         for k in db_keys:
-            if k in cls_name.lower():
+            if k in c_clean:
                 if not matched_key:
                     matched_key = k
-                b_conf = max(conf * 100.0, 86.0)
+                b_conf = max(conf * 100.0, 75.0)
                 break
+        if matched_key and b_conf > 75.0:
+            break
 
     if not matched_key:
         # Default fallback to somdej_watrakang or first db key

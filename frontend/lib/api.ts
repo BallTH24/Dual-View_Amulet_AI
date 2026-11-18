@@ -19,83 +19,6 @@ const DISCLAIMER_TEXT =
 
 export const DEMO_AMULETS: DemoAmuletPreset[] = [
   {
-    id: "luangpu_thuad_97",
-    shortLabel: "หลวงปู่ทวด 2497",
-    data: {
-      success: true,
-      model_id: "luangpu_thuad_97",
-      user_mode: "b2b",
-      amulet_info: {
-        name: "พระหลวงปู่ทวด วัดช้างให้ เนื้อว่าน ปี 2497 พิมพ์ใหญ่",
-        temple: "วัดช้างให้ (วัดราษฎร์บูรณะ) จ.ปัตตานี",
-        year: "พ.ศ. 2497",
-        front_keypoint:
-          "พิมพ์ลึกคมชัด ริ้วรอยเหี่ยวย่นบนหน้าผาก เปลือกตา และร่องแก้มลึกเป็นธรรมชาติ เม็ดแร่ว่านและคราบน้ำว่านผุดเกาะผิวพระ",
-        back_keypoint:
-          "ก้นมีรอยเสียบก้านธูปงัดออกจากพิมพ์ รูพรุนจากการระเหยของเนื้อว่าน มวลสารว่าน 108 ผสมดินกากยายักษ์",
-        base_price_thb: 3500000,
-        recommended_region:
-          "ภาคใต้ (หาดใหญ่ สงขลา, สุราษฎร์ธานี, ปัตตานี) และ ศูนย์พระเครื่องกรุงเทพฯ",
-        region_reason:
-          "ถิ่นกำเนิดและศูนย์รวมพลังศรัทธาสายหลวงปู่ทวดอันดับหนึ่ง พุทธคุณนิรันตรายแคล้วคลาดเป็นที่ต้องการสูงตลอดกาลในภาคใต้",
-        ref_front_img:
-          "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80",
-        ref_back_img:
-          "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=800&q=80",
-      },
-      confidence: {
-        total: 94.2,
-        front: 92.0,
-        back: 96.0,
-        formula: "0.45 * front_conf + 0.55 * back_conf",
-      },
-      condition: {
-        condition_pct: 88.0,
-        grade: "สภาพสวยสมบูรณ์ (Excellent - ผิวเดิม)",
-        defect_count: 2,
-        defects_summary: ["รอยสึกหรอสัมผัส / รอยกร่อนผิว"],
-        defects_detail: [
-          {
-            side: "front",
-            type: "รอยบิ่นขอบซุ้มด้านซ้าย",
-            x_pct: 34,
-            y_pct: 60,
-            confidence: 89.2,
-            area_pct: 1.8,
-          },
-          {
-            side: "back",
-            type: "รอยกะเทาะผิวเนื้อว่านด้านหลัง",
-            x_pct: 64,
-            y_pct: 45,
-            confidence: 91.5,
-            area_pct: 1.4,
-          },
-        ],
-      },
-      pricing: {
-        base_price_thb: 3500000,
-        estimated_price_thb: 3080000,
-        discount_pct: 12.0,
-      },
-      recommendation: {
-        region:
-          "ภาคใต้ (หาดใหญ่ สงขลา, สุราษฎร์ธานี, ปัตตานี) และ ศูนย์พระเครื่องกรุงเทพฯ",
-        reason:
-          "ถิ่นกำเนิดและศูนย์รวมพลังศรัทธาสายหลวงปู่ทวดอันดับหนึ่ง มีร้านรับเช่าสายตรงหนาแน่น",
-      },
-      ai_analysis:
-        "สภาพความสมบูรณ์ 88.0% พบจุดตำหนิ/สึกหรอ 2 ตำแหน่ง แนะนำกรอบวงเงินรับเข้า/รับจำนำปลอดภัย (LTV 60–70%): 1,848,000 – 2,156,000 บาท",
-      disclaimer: DISCLAIMER_TEXT,
-      processing_time_ms: 420,
-      system_specs: {
-        device: "cpu",
-        model_used: "mock_demo",
-        clahe_applied_on_back: true,
-      },
-    },
-  },
-  {
     id: "somdej_watrakang",
     shortLabel: "พระสมเด็จวัดระฆัง",
     data: {
@@ -105,248 +28,474 @@ export const DEMO_AMULETS: DemoAmuletPreset[] = [
       amulet_info: {
         name: "พระสมเด็จวัดระฆังโฆสิตาราม พิมพ์ใหญ่",
         temple: "วัดระฆังโฆสิตารามวรมหาวิหาร กรุงเทพมหานคร",
-        year: "พ.ศ. 2409–2415",
+        year: "พ.ศ. 2409–2415 (ยุคสมเด็จพระพุฒาจารย์ โต พรหมรังสี)",
         front_keypoint:
-          "เส้นซุ้มครอบแก้วหวายผ่าซีกโค้งสมส่วน ปลายพระเกศเรียวสะบัดจรดซุ้ม ฐานสิงห์คมขวานชัดเจน",
+          "เส้นซุ้มครอบแก้วหวายผ่าซีกโค้งสมส่วน ปลายพระเกศเรียวสะบัดจรดซุ้ม ฐานสิงห์คมขวานชัดเจน เนื้อผงพุทธคุณผสมปูนเปลือกหอย",
         back_keypoint:
-          "หลังกาบหมาก หลังกระดาน มีรอยปูไต่ รอยหนอนด้น รอยปริแยกตามขอบข้าง",
+          "หลังกาบหมาก หลังกระดาน มีรอยปูไต่ รอยหนอนด้น รอยปริแยกตามขอบข้าง เนื้อผงแห้งแกร่งนุ่มตาตามอายุความเก่ากว่า 150 ปี",
         base_price_thb: 15000000,
         recommended_region:
-          "กรุงเทพมหานครและปริมณฑล (ท่าพระจันทร์ / พันธุ์ทิพย์งามวงศ์วาน)",
+          "กรุงเทพมหานครและปริมณฑล (ตลาดพระเครื่องท่าพระจันทร์ / พันธุ์ทิพย์งามวงศ์วาน)",
         region_reason:
-          "ศูนย์กลางสมาคมและสถาบันออกใบรับรองพระแท้ระดับประเทศ มีกำลังซื้อสูงสุด",
+          "ศูนย์กลางสมาคมและสถาบันออกใบรับรองพระแท้ระดับสากล มีกำลังซื้อสูงสุด",
         ref_front_img:
           "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
         ref_back_img:
           "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
       },
       confidence: {
-        total: 92.8,
-        front: 91.5,
-        back: 93.8,
+        total: 94.8,
+        front: 93.5,
+        back: 95.8,
         formula: "0.45 * front_conf + 0.55 * back_conf",
       },
       condition: {
-        condition_pct: 84.5,
-        grade: "สภาพปานกลางผ่านการบูชา (Good - มีรอยสัมผัส)",
+        condition_pct: 88.5,
+        grade: "สภาพสวยสมบูรณ์ (Excellent - ผิวเดิม)",
         defect_count: 2,
-        defects_summary: ["รอยกะเทาะมุมบนขวา", "รอยรานผิวด้านหลัง"],
+        defects_summary: ["รอยปริขอบข้างธรรมชาติ", "รอยหนอนด้นด้านหลัง"],
         defects_detail: [
           {
             side: "front",
-            type: "รอยกะเทาะมุมบนขวา",
-            x_pct: 66,
-            y_pct: 26,
-            confidence: 87.5,
-            area_pct: 2.1,
+            type: "รอยปริขอบซุ้มด้านบนซ้าย",
+            x_pct: 35,
+            y_pct: 22,
+            confidence: 88.5,
+            area_pct: 1.5,
           },
           {
             side: "back",
-            type: "รอยรานผิวด้านหลังล่าง",
-            x_pct: 48,
-            y_pct: 70,
-            confidence: 88.0,
-            area_pct: 1.9,
+            type: "รอยหนอนด้นตามอายุความเก่า",
+            x_pct: 62,
+            y_pct: 54,
+            confidence: 90.2,
+            area_pct: 1.8,
           },
         ],
       },
       pricing: {
         base_price_thb: 15000000,
-        estimated_price_thb: 12675000,
-        discount_pct: 15.5,
+        estimated_price_thb: 13275000,
+        discount_pct: 11.5,
       },
       recommendation: {
         region: "กรุงเทพมหานครและปริมณฑล (ท่าพระจันทร์ / พันธุ์ทิพย์งามวงศ์วาน)",
         reason:
-          "ศูนย์กลางสมาคมและสถาบันออกใบรับรองพระแท้ระดับประเทศ มีกำลังซื้อสูงสุด",
+          "ศูนย์กลางสมาคมผู้นิยมพระเครื่องพระบูชาไทย มีนักสะสมระดับมหาเศรษฐีพร้อมเช่าบูชา",
       },
       ai_analysis:
-        "เส้นซุ้มครอบแก้วและมวลสารด้านหลังสอดคล้องพิมพ์มาตรฐาน สภาพความสมบูรณ์ 84.5%",
+        "เส้นซุ้มครอบแก้วและรอยปริแยกด้านหลังสอดคล้องพิมพ์มาตรฐานวัดระฆัง สภาพความสมบูรณ์ 88.5% แนะนำกรอบรับจำนำปลอดภัย (LTV 60–70%): 7,965,000 – 9,292,500 บาท",
       disclaimer: DISCLAIMER_TEXT,
+      processing_time_ms: 380,
+      system_specs: {
+        device: "mps",
+        model_used: "best.pt",
+        clahe_applied_on_back: true,
+      },
     },
   },
   {
-    id: "luangputim_charoenphon",
-    shortLabel: "เหรียญเจริญพร หลวงปู่ทิม",
+    id: "somdej_bangkhunprom",
+    shortLabel: "พระสมเด็จบางขุนพรหม",
     data: {
       success: true,
-      model_id: "luangputim_charoenphon",
+      model_id: "somdej_bangkhunprom",
       user_mode: "b2b",
       amulet_info: {
-        name: "เหรียญเจริญพรบน หลวงปู่ทิม อิสริโก วัดละหารไร่ ปี 2517",
-        temple: "วัดละหารไร่ จ.ระยอง",
-        year: "พ.ศ. 2517",
+        name: "พระสมเด็จบางขุนพรหม พิมพ์ใหญ่ กรุวัดใหม่อมตรส",
+        temple: "วัดใหม่อมตรส (บางขุนพรหม) กรุงเทพมหานคร",
+        year: "พ.ศ. 2411–2413 (เปิดกรุเป็นทางการ พ.ศ. 2500)",
         front_keypoint:
-          "อักษรคำว่า 'เจริญพร' ด้านบนคมชัด เส้นริ้วรอยลำคอ 2 เส้น โค้ดเลขประจำองค์ตอกชัด",
+          "พิมพ์ทรงลึกคมชัด ซุ้มครอบแก้วโปร่ง มีคราบกรุฟองเต้าหู้ คราบขี้กรุดินขี้เป็ดเกาะแน่นเป็นชั้นธรรมชาติ เนื้อผงขาวแกร่งแน่น",
         back_keypoint:
-          "โค้ดตัว ท ในเม็ดงา หรือโค้ดศาลาตอกลึก ตัวเลขอักขระยันต์ห้าคมชัด",
-        base_price_thb: 1200000,
-        recommended_region: "ภาคตะวันออก (ระยอง, ชลบุรี, จันทบุรี) และ กทม.",
+          "หลังเรียบ มีคราบกรุบางๆ หรือคราบกรุหนาสีน้ำตาลเข้มอมเหลือง รอยเหนอะและรอยปริแยกบริเวณขอบข้าง",
+        base_price_thb: 8500000,
+        recommended_region:
+          "กรุงเทพมหานคร (ศูนย์พระเครื่องท่าพระจันทร์, พันธุ์ทิพย์งามวงศ์วาน)",
         region_reason:
-          "ภาคตะวันออกเป็นฐานเศรษฐกิจอุตสาหกรรมและมีรังพระใหญ่สายหลวงปู่ทิมที่เหนียวแน่น",
+          "พระสมเด็จยอดนิยมอันดับสองรองจากวัดระฆัง ปลุกเสกโดยสมเด็จโต สภาพกรุเก่า-กรุใหม่มีผู้ต้องการสะสมหมุนเวียนสูง",
         ref_front_img:
-          "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80",
         ref_back_img:
-          "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
       },
       confidence: {
-        total: 95.3,
-        front: 94.0,
-        back: 96.4,
+        total: 93.6,
+        front: 92.4,
+        back: 94.6,
         formula: "0.45 * front_conf + 0.55 * back_conf",
       },
       condition: {
-        condition_pct: 93.0,
+        condition_pct: 86.0,
         grade: "สภาพสวยสมบูรณ์ (Excellent - ผิวเดิม)",
-        defect_count: 1,
-        defects_summary: ["รอยขนแมวบางๆ พื้นเหรียญ"],
+        defect_count: 2,
+        defects_summary: ["คราบกรุกะเทาะขอบล่าง", "รอยรานผิวเดิม"],
         defects_detail: [
           {
             side: "front",
-            type: "รอยขนแมวบางๆ บริเวณพื้นเหรียญ",
-            x_pct: 56,
-            y_pct: 40,
-            confidence: 85.4,
-            area_pct: 0.9,
+            type: "คราบกรุเปิดบริเวณฐานชั้นล่าง",
+            x_pct: 50,
+            y_pct: 78,
+            confidence: 87.0,
+            area_pct: 2.0,
           },
         ],
       },
       pricing: {
-        base_price_thb: 1200000,
-        estimated_price_thb: 1116000,
-        discount_pct: 7.0,
+        base_price_thb: 8500000,
+        estimated_price_thb: 7310000,
+        discount_pct: 14.0,
       },
       recommendation: {
-        region: "ภาคตะวันออก (ระยอง, ชลบุรี, จันทบุรี) และ กทม.",
+        region: "กรุงเทพมหานคร (ท่าพระจันทร์, พันธุ์ทิพย์งามวงศ์วาน)",
         reason:
-          "ภาคตะวันออกเป็นฐานเศรษฐกิจอุตสาหกรรมและมีรังพระใหญ่สายหลวงปู่ทิมที่เหนียวแน่น",
+          "ตลาดกลางพระเครื่องมาตรฐานสากล มีกำลังซื้อรองรับพระสมเด็จสายตรง",
       },
       ai_analysis:
-        "โค้ดตอกและอักขระยันต์ห้าด้านหลังคมชัดผ่าน CLAHE ผิวเดิมสมบูรณ์ 93.0%",
+        "คราบกรุฟองเต้าหู้และเนื้อผงแกร่งจัดสอดคล้องกับกรุวัดใหม่อมตรส ความสมบูรณ์ 86.0%",
       disclaimer: DISCLAIMER_TEXT,
+      processing_time_ms: 410,
+      system_specs: {
+        device: "mps",
+        model_used: "best.pt",
+        clahe_applied_on_back: true,
+      },
     },
   },
   {
-    id: "luangphor_khoon_19",
-    shortLabel: "หลวงพ่อคูณ ปี 2519",
+    id: "somdej_ketchaiyo",
+    shortLabel: "พระสมเด็จเกศไชโย",
     data: {
       success: true,
-      model_id: "luangphor_khoon_19",
+      model_id: "somdej_ketchaiyo",
       user_mode: "b2b",
       amulet_info: {
-        name: "เหรียญหลวงพ่อคูณ ปริสุทโธ วัดบ้านไร่ รุ่นสร้างบารมี ปี 2519",
-        temple: "วัดบ้านไร่ จ.นครราชสีมา",
-        year: "พ.ศ. 2519",
+        name: "พระสมเด็จเกศไชโย พิมพ์ 7 ชั้น นิยม",
+        temple: "วัดไชโยวรวิหาร (วัดเกศไชโย) จ.อ่างทอง",
+        year: "พ.ศ. 2404–2409 (สมเด็จพระพุฒาจารย์ โต สร้างอุทิศโยมมารดา)",
         front_keypoint:
-          "มีรอยขีดใต้ตาขวา เม็ดลูกกระเดือกนูนเด่น ขอบเหรียญปลิ้นตั้งเป็นสัน",
+          "อกร่อง หูบายศรี ฐาน 7 ชั้นคมขวาน กรอบกระจกยกขอบสันนูนชัดเจน เนื้อผงขาวละเอียดอมเหลือง",
         back_keypoint:
-          "โค้ด คปร. หรือโค้ดตัวนะ ตอกลึกเม็ดโลหะไม่บี้แบน รอยตัดขอบข้างยุค 2519",
-        base_price_thb: 850000,
+          "หลังเรียบ มีรอยครูดกาบหมากหรือรอยปาดเรียบด้วยไม้ไผ่ ขอบข้างมีรอยตัดตอกตั้งฉาก",
+        base_price_thb: 4500000,
         recommended_region:
-          "ภาคตะวันออกเฉียงเหนือ (นครราชสีมา, ขอนแก่น) และ กทม.",
+          "ภาคกลาง (อ่างทอง, สิงห์บุรี, พระนครศรีอยุธยา) และ กรุงเทพฯ",
         region_reason:
-          "เหรียญยอดนิยมอันดับ 1 ของหลวงพ่อคูณ ชมรมพระเครื่องโคราชและสายตรงอีสานมีกำลังเช่าหาหมุนเวียนสูง",
+          "พระสมเด็จ 1 ใน 3 ตระกูลสมเด็จโต เอกลักษณ์กรอบกระจกและฐาน 7 ชั้น สายตรงภาคกลางนิยมสูง",
         ref_front_img:
           "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80",
         ref_back_img:
           "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=800&q=80",
       },
       confidence: {
-        total: 93.1,
-        front: 91.5,
-        back: 94.4,
+        total: 94.2,
+        front: 93.0,
+        back: 95.2,
         formula: "0.45 * front_conf + 0.55 * back_conf",
       },
       condition: {
         condition_pct: 90.0,
         grade: "สภาพสวยสมบูรณ์ (Excellent - ผิวเดิม)",
         defect_count: 1,
-        defects_summary: ["รอยเสียดสียันต์ด้านหลัง"],
+        defects_summary: ["รอยสัมผัสขอบกระจก"],
         defects_detail: [
           {
-            side: "back",
-            type: "รอยเสียดสีเล็กน้อยบริเวณยันต์ด้านหลัง",
-            x_pct: 42,
-            y_pct: 56,
-            confidence: 86.2,
+            side: "front",
+            type: "รอยสัมผัสเล็กน้อยขอบกระจกด้านขวา",
+            x_pct: 72,
+            y_pct: 45,
+            confidence: 86.4,
+            area_pct: 1.1,
+          },
+        ],
+      },
+      pricing: {
+        base_price_thb: 4500000,
+        estimated_price_thb: 4050000,
+        discount_pct: 10.0,
+      },
+      recommendation: {
+        region: "ภาคกลาง (อ่างทอง, สิงห์บุรี, อยุธยา) และ กรุงเทพฯ",
+        reason:
+          "ศูนย์รวมผู้ศรัทธาสายสมเด็จเกศไชโย มีการเปลี่ยนมือคล่องตัว",
+      },
+      ai_analysis:
+        "พิมพ์ 7 ชั้น อกร่องหูบายศรีคมชัด กรอบกระจกยกสันสมบูรณ์ ผิวเดิม 90.0%",
+      disclaimer: DISCLAIMER_TEXT,
+      processing_time_ms: 395,
+      system_specs: {
+        device: "mps",
+        model_used: "best.pt",
+        clahe_applied_on_back: true,
+      },
+    },
+  },
+  {
+    id: "phra_nangphaya",
+    shortLabel: "พระนางพญา พิษณุโลก",
+    data: {
+      success: true,
+      model_id: "phra_nangphaya",
+      user_mode: "b2b",
+      amulet_info: {
+        name: "พระนางพญา พิมพ์เข่าโค้ง กรุวัดนางพญา",
+        temple: "วัดนางพญา จ.พิษณุโลก",
+        year: "พ.ศ. 2095–2110 (ยุคสมเด็จพระวิสุทธิกษัตรีย์)",
+        front_keypoint:
+          "ทรงสามเหลี่ยมหน้าจั่ว พระพาหาโค้งมนอ่อนช้อยจรดหัวเข่า พระกรรณบายศรี ลำพระองค์ผึ่งผายสง่างาม",
+        back_keypoint:
+          "หลังเรียบ มีรอยลายนิ้วมือจางๆ เม็ดแร่กรวดทรายโผล่พ้นผิว รอยตัดข้างทรงสามเหลี่ยมลาดเอียงธรรมชาติ",
+        base_price_thb: 6000000,
+        recommended_region:
+          "ภาคเหนือตอนล่างและภาคกลาง (พิษณุโลก, นครสวรรค์) และ กรุงเทพฯ",
+        region_reason:
+          "ราชินีแห่งพระเครื่องหนึ่งในชุดเบญจภาคี มหาเสน่ห์ เมตตามหานิยม แคล้วคลาดปลอดภัย",
+        ref_front_img:
+          "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
+        ref_back_img:
+          "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=800&q=80",
+      },
+      confidence: {
+        total: 95.1,
+        front: 94.0,
+        back: 96.0,
+        formula: "0.45 * front_conf + 0.55 * back_conf",
+      },
+      condition: {
+        condition_pct: 87.5,
+        grade: "สภาพสวยสมบูรณ์ (Excellent - ผิวเดิม)",
+        defect_count: 2,
+        defects_summary: ["รอยกรวดหลุดผิวด้านหลัง", "รอยสัมผัสยอดเกศ"],
+        defects_detail: [
+          {
+            side: "front",
+            type: "รอยสัมผัสยอดพระเกศ",
+            x_pct: 50,
+            y_pct: 18,
+            confidence: 89.0,
             area_pct: 1.2,
           },
         ],
       },
       pricing: {
-        base_price_thb: 850000,
-        estimated_price_thb: 765000,
-        discount_pct: 10.0,
+        base_price_thb: 6000000,
+        estimated_price_thb: 5250000,
+        discount_pct: 12.5,
       },
       recommendation: {
-        region: "ภาคตะวันออกเฉียงเหนือ (นครราชสีมา, ขอนแก่น) และ กทม.",
-        reason:
-          "ชมรมพระเครื่องโคราชและสายตรงอีสานมีกำลังเช่าหาหมุนเวียนสูง",
+        region: "ภาคเหนือตอนล่าง (พิษณุโลก) และ กรุงเทพฯ",
+        reason: "ถิ่นกำเนิดราชินีพระเครื่องเบญจภาคี มีตลาดผู้ศรัทธาระดับบน",
       },
       ai_analysis:
-        "ตัวหนังสือและยันต์ด้านหลังคมชัด ความสมบูรณ์ 90.0%",
+        "พิมพ์เข่าโค้งอ่อนช้อย เส้นสายคมชัด มวลสารแร่ทรายเงินทรายทองครบถ้วน ความสมบูรณ์ 87.5%",
       disclaimer: DISCLAIMER_TEXT,
+      processing_time_ms: 405,
+      system_specs: {
+        device: "mps",
+        model_used: "best.pt",
+        clahe_applied_on_back: true,
+      },
     },
   },
   {
-    id: "wessuwan_chulamani",
-    shortLabel: "ท้าวเวสสุวรรณ ปี 2545",
+    id: "phra_phong_suphan",
+    shortLabel: "พระผงสุพรรณ หน้าแก่",
     data: {
       success: true,
-      model_id: "wessuwan_chulamani",
+      model_id: "phra_phong_suphan",
       user_mode: "b2b",
       amulet_info: {
-        name: "เหรียญท้าวเวสสุวรรณ หลวงพ่ออิฏฐ์ วัดจุฬามณี รุ่นจำปี ปี 2545",
-        temple: "วัดจุฬามณี จ.สมุทรสงคราม",
-        year: "พ.ศ. 2545",
+        name: "พระผงสุพรรณ ยอดโถ พิมพ์หน้าแก่ กรุวัดพระศรีรัตนมหาธาตุ",
+        temple: "วัดพระศรีรัตนมหาธาตุ จ.สุพรรณบุรี",
+        year: "พ.ศ. 1900–2000 (ศิลปะอู่ทอง ยุคอยุธยาตอนต้น)",
         front_keypoint:
-          "องค์ท้าวเวสสุวรรณยืนกุมกระบอง ลวดลายเกราะและใบหน้าคมชัด เส้นสายฟ้าฟาดในซุ้มจำปี",
+          "พระพักตร์เหลี่ยมดุจหน้าคนแก่ ไรพระศกหยักเสมอกัน ร่องพระนาสิกกว้าง รอยเหี่ยวย่นใต้คาง",
         back_keypoint:
-          "โค้ดภาษาจีน 'เหล็ง' ตอกคมลึก อักขระยันต์โสฬสมงคลคมชัด รอยตัดข้างยุค 2545",
-        base_price_thb: 120000,
-        recommended_region: "ภาคกลาง (สมุทรสงคราม, สมุทรสาคร, กรุงเทพมหานคร)",
+          "รอยลายนิ้วมือแบบก้นหอยโบราณของผู้กดพิมพ์ มวลสารดินกรวดทรายแร่ละเอียด รอยตัดขอบข้างด้วยตอก",
+        base_price_thb: 4500000,
+        recommended_region:
+          "ภาคกลาง (สุพรรณบุรี, พระนครศรีอยุธยา) และ กรุงเทพมหานคร",
         region_reason:
-          "วัดจุฬามณีและสายมูภาคกลางเป็นจุดศูนย์รวมศรัทธาท้าวเวสสุวรรณอันดับ 1",
+          "หนึ่งในชุดเบญจภาคีเนื้อดินยอดนิยมอันดับ 1 ของภาคกลาง เซียนสายอนุรักษ์พระกรุพร้อมสู้ราคา",
         ref_front_img:
-          "https://images.unsplash.com/photo-1569098644584-210bcd375b59?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1582560475093-ba66accbc424?auto=format&fit=crop&w=800&q=80",
         ref_back_img:
-          "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80",
       },
       confidence: {
-        total: 92.4,
-        front: 91.0,
-        back: 93.5,
+        total: 94.6,
+        front: 93.8,
+        back: 95.2,
         formula: "0.45 * front_conf + 0.55 * back_conf",
       },
       condition: {
-        condition_pct: 91.5,
+        condition_pct: 89.0,
         grade: "สภาพสวยสมบูรณ์ (Excellent - ผิวเดิม)",
         defect_count: 1,
-        defects_summary: ["รอยสัมผัสขอบบน"],
+        defects_summary: ["รอยสึกขอบล่างตามอายุ"],
         defects_detail: [
           {
             side: "front",
-            type: "รอยสัมผัสเล็กน้อยบริเวณขอบซุ้ม",
+            type: "รอยสึกบริเวณขอบฐานล่าง",
+            x_pct: 48,
+            y_pct: 82,
+            confidence: 87.8,
+            area_pct: 1.4,
+          },
+        ],
+      },
+      pricing: {
+        base_price_thb: 4500000,
+        estimated_price_thb: 4005000,
+        discount_pct: 11.0,
+      },
+      recommendation: {
+        region: "ภาคกลาง (สุพรรณบุรี, อยุธยา) และ กรุงเทพมหานคร",
+        reason: "ตลาดพระกรุสุพรรณบุรีและสมาคมส่วนกลางให้มูลค่าสูงเป็นพิเศษ",
+      },
+      ai_analysis:
+        "พระพักตร์หน้าแก่และรอยลายนิ้วมือก้นหอยด้านหลังเด่นชัด ความสมบูรณ์ 89.0%",
+      disclaimer: DISCLAIMER_TEXT,
+      processing_time_ms: 390,
+      system_specs: {
+        device: "mps",
+        model_used: "best.pt",
+        clahe_applied_on_back: true,
+      },
+    },
+  },
+  {
+    id: "phra_rod",
+    shortLabel: "พระรอด มหาวัน ลำพูน",
+    data: {
+      success: true,
+      model_id: "phra_rod",
+      user_mode: "b2b",
+      amulet_info: {
+        name: "พระรอด พิมพ์ใหญ่ กรุวัดมหาวัน ลำพูน",
+        temple: "วัดมหาวัน จ.ลำพูน",
+        year: "พ.ศ. 1200–1300 (สมัยพระนางจามเทวี ยุคหริภุญชัย)",
+        front_keypoint:
+          "ประทับนั่งบนฐานบัวสองชั้น พระกรรณขวายาวจดพระอังสา ปีกกว้าง โพธิ์แฉกคมกริบ ติ่งเนื้อใต้ฝ่าพระหัตถ์",
+        back_keypoint:
+          "หลังอูมมน มีรอยลายนิ้วมือโบราณกดอัดแน่น ปลายก้นพับและมีรอยตัดตอกดินแกร่งแห้งสนิทตามอายุพันกว่าปี",
+        base_price_thb: 7500000,
+        recommended_region:
+          "ภาคเหนือ (ลำพูน, เชียงใหม่) และ สมาคมผู้นิยมพระเครื่องพระบูชาไทย กรุงเทพฯ",
+        region_reason:
+          "พระกรุเก่าแก่อายุกว่า 1,200 ปี พุทธคุณนิรันตรายแคล้วคลาดเป็นเอกอุ หายากที่สุดในเบญจภาคี",
+        ref_front_img:
+          "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?auto=format&fit=crop&w=800&q=80",
+        ref_back_img:
+          "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+      },
+      confidence: {
+        total: 96.0,
+        front: 95.2,
+        back: 96.6,
+        formula: "0.45 * front_conf + 0.55 * back_conf",
+      },
+      condition: {
+        condition_pct: 92.0,
+        grade: "สภาพแชมป์ (Mint Condition - องค์ครู)",
+        defect_count: 1,
+        defects_summary: ["รอยปริก้นพับธรรมชาติ"],
+        defects_detail: [
+          {
+            side: "back",
+            type: "รอยปริรอยพับก้นโบราณ",
             x_pct: 50,
-            y_pct: 25,
-            confidence: 84.0,
+            y_pct: 88,
+            confidence: 91.0,
             area_pct: 1.0,
           },
         ],
       },
       pricing: {
-        base_price_thb: 120000,
-        estimated_price_thb: 109800,
-        discount_pct: 8.5,
+        base_price_thb: 7500000,
+        estimated_price_thb: 6900000,
+        discount_pct: 8.0,
       },
       recommendation: {
-        region: "ภาคกลาง (สมุทรสงคราม, สมุทรสาคร, กรุงเทพมหานคร)",
-        reason:
-          "วัดจุฬามณีและสายมูภาคกลางเป็นจุดศูนย์รวมศรัทธาท้าวเวสสุวรรณอันดับ 1",
+        region: "ภาคเหนือ (ลำพูน, เชียงใหม่) และ กรุงเทพมหานคร",
+        reason: "รังพระใหญ่สายเหนือและสมาคมผู้นิยมพระเครื่องพร้อมรับเช่าบูชาไม่อั้น",
       },
       ai_analysis:
-        "เส้นสายฟ้าฟาดและโค้ดเหล็งด้านหลังคมชัด ความสมบูรณ์ 91.5%",
+        "โพธิ์แฉกคมชัด ก้นพับถูกต้องตามตำราพระรอดมหาวัน ความสมบูรณ์ 92.0%",
       disclaimer: DISCLAIMER_TEXT,
+      processing_time_ms: 420,
+      system_specs: {
+        device: "mps",
+        model_used: "best.pt",
+        clahe_applied_on_back: true,
+      },
+    },
+  },
+  {
+    id: "phra_sumkor",
+    shortLabel: "พระซุ้มกอ กำแพงเพชร",
+    data: {
+      success: true,
+      model_id: "phra_sumkor",
+      user_mode: "b2b",
+      amulet_info: {
+        name: "พระซุ้มกอ พิมพ์ใหญ่มีกนก กรุทุ่งเศรษฐี",
+        temple: "วัดพระบรมธาตุเจดียาราม (กรุทุ่งเศรษฐี) จ.กำแพงเพชร",
+        year: "พ.ศ. 1900 (ยุคสุโขทัย สมัยพญาลิไท)",
+        front_keypoint:
+          "ซุ้มกนกลวดลายพริ้วไหวรอบองค์พระ พระพักตร์กลมรูปไข่ พระเกศบัวตูม ปางสมาธิ ประทับบนบัวเล็บช้าง ว่านดอกมะขามกระจาย",
+        back_keypoint:
+          "หลังอูมนูน ผิวดินแห้งเนียน มีคราบรารักดำเกาะติดแน่น รอยตัดขอบข้างโค้งมน จารึก 'มีกูไว้ไม่จน'",
+        base_price_thb: 9500000,
+        recommended_region:
+          "ภาคเหนือตอนล่างและภาคกลาง (กำแพงเพชร, นครสวรรค์) และ กรุงเทพมหานคร",
+        region_reason:
+          "ยอดพระเครื่องเบญจภาคีเนื้อดินอมตะ 'มณีนพรัตน์เมืองชากังราว' เสริมโชคลาภมหาเศรษฐี เซียนใหญ่ต้องการสูง",
+        ref_front_img:
+          "https://images.unsplash.com/photo-1549887534-1541e9326642?auto=format&fit=crop&w=800&q=80",
+        ref_back_img:
+          "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+      },
+      confidence: {
+        total: 95.5,
+        front: 94.8,
+        back: 96.0,
+        formula: "0.45 * front_conf + 0.55 * back_conf",
+      },
+      condition: {
+        condition_pct: 91.0,
+        grade: "สภาพสวยสมบูรณ์ (Excellent - ผิวเดิม)",
+        defect_count: 1,
+        defects_summary: ["รอยรานผิวเดิมด้านหน้า"],
+        defects_detail: [
+          {
+            side: "front",
+            type: "รอยรานผิวว่านเล็กน้อย",
+            x_pct: 54,
+            y_pct: 64,
+            confidence: 88.2,
+            area_pct: 1.2,
+          },
+        ],
+      },
+      pricing: {
+        base_price_thb: 9500000,
+        estimated_price_thb: 8645000,
+        discount_pct: 9.0,
+      },
+      recommendation: {
+        region: "ภาคเหนือตอนล่าง (กำแพงเพชร, นครสวรรค์) และ กรุงเทพฯ",
+        reason: "มหาเศรษฐีและนักธุรกิจนิยมเช่าบูชาเพื่อความร่ำรวยและเป็นมงคลชีวิต",
+      },
+      ai_analysis:
+        "ลวดลายกนกคมชัด คราบรารักดำและจุดว่านดอกมะขามครบถ้วน ความสมบูรณ์ 91.0%",
+      disclaimer: DISCLAIMER_TEXT,
+      processing_time_ms: 415,
+      system_specs: {
+        device: "mps",
+        model_used: "best.pt",
+        clahe_applied_on_back: true,
+      },
     },
   },
 ];
