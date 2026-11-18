@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+backend/venv/
+ENV/
+env/
+.venv
+
+# Large Model Weights (YOLO downloads automatically)
+*.pt
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+frontend/out/
+build/
+dist/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+frontend/.env.local
+frontend/.env.*.local
+
+# Operating System & IDE
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
