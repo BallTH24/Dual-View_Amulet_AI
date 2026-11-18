@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   MapPin,
   Award,
@@ -12,6 +12,11 @@ import {
   AlertTriangle,
   Sparkles,
   CircleDot,
+  Search,
+  FileText,
+  Printer,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import {
   AnalyzeResponse,
@@ -53,6 +58,8 @@ export default function ResultDashboard({
   const [showCircles, setShowCircles] = useState(true);
   const [showClahe, setShowClahe] = useState(false);
   const [showRefSide, setShowRefSide] = useState(false);
+  const [showLoupe, setShowLoupe] = useState(false);
+  const [showCertCard, setShowCertCard] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState("");
@@ -147,7 +154,7 @@ export default function ResultDashboard({
             </p>
           </div>
 
-          {/* Minimal 3 View Toggles */}
+          {/* Minimal View Toggles */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -177,6 +184,19 @@ export default function ResultDashboard({
 
             <button
               type="button"
+              onClick={() => setShowLoupe(!showLoupe)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${
+                showLoupe
+                  ? "bg-amber-400 text-[#18130D] shadow-md shadow-amber-400/20"
+                  : "bg-white/5 text-[#B8AD9E]"
+              }`}
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>แว่นส่องพระ 3x</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowRefSide(!showRefSide)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
                 showRefSide
@@ -189,13 +209,14 @@ export default function ResultDashboard({
           </div>
         </div>
 
-        {/* Front & Back Photos with Interactive Defect Circles */}
+        {/* Front & Back Photos with Interactive Defect Circles & 3x Loupe */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DefectPhotoFrame
             title="ด้านหน้า (แตะวงกลมเพื่อดูจุดตำหนิ)"
             imageSrc={frontPreview}
             isClahe={showClahe}
             showCircles={showCircles}
+            showLoupe={showLoupe}
             spots={defects.filter((d) => d.side === "front")}
             selectedId={selectedDefectId}
             onSelectSpot={setSelectedDefectId}
@@ -209,6 +230,7 @@ export default function ResultDashboard({
             imageSrc={displayedBackImage}
             isClahe={showClahe && !result.clahe_back_image}
             showCircles={showCircles}
+            showLoupe={showLoupe}
             spots={defects.filter((d) => d.side === "back")}
             selectedId={selectedDefectId}
             onSelectSpot={setSelectedDefectId}
@@ -421,15 +443,132 @@ export default function ResultDashboard({
           <span>ถ่าย / สแกนองค์ใหม่</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onOpenCertModal}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] text-xs sm:text-sm font-bold shadow cursor-pointer"
-        >
-          <Award className="w-4 h-4" />
-          <span>ส่งต่อออกบัตรรับรอง (Check Cer)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setShowCertCard(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-xs sm:text-sm font-semibold text-[#F7E5B8] border border-[#E6B85C]/40 transition cursor-pointer"
+          >
+            <FileText className="w-4 h-4 text-[#E6B85C]" />
+            <span>ใบสรุปผลสแกน AI</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenCertModal}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] text-xs sm:text-sm font-bold shadow cursor-pointer"
+          >
+            <Award className="w-4 h-4" />
+            <span>ส่งต่อออกบัตรรับรอง (Check Cer)</span>
+          </button>
+        </div>
       </div>
+
+      {/* Printable Digital Certificate Modal */}
+      {showCertCard && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#1C1814] rounded-3xl border-2 border-[#E6B85C]/60 max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl text-[#F5EFE6]">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-[#E6B85C]/30 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-[#E6B85C]">
+                  <ShieldCheck className="w-6 h-6" />
+                  <span className="text-xs uppercase tracking-widest font-bold">
+                    Official AI Inspection Certificate
+                  </span>
+                </div>
+                <h3 className="font-signature text-2xl sm:text-3xl font-bold text-[#F7E5B8]">
+                  ใบรายงานผลการตรวจส่องพระเครื่อง
+                </h3>
+                <p className="text-xs text-[#9A8F80]">
+                  รหัสอ้างอิง: #SCAN-{result.model_id.toUpperCase()}-2569 • ตรวจสอบโดย Dual-View Amulet AI
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowCertCard(false)}
+                className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-[#C7BCAE] transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Photos & Core Specs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1 text-center">
+                <div className="h-44 rounded-xl bg-[#0B0A08] border border-[#E6B85C]/30 overflow-hidden flex items-center justify-center p-1">
+                  {frontPreview && (
+                    <img src={frontPreview} alt="หน้า" className="w-full h-full object-contain" />
+                  )}
+                </div>
+                <span className="text-[11px] text-[#C7BCAE]">ด้านหน้า (พิมพ์ทรง)</span>
+              </div>
+
+              <div className="space-y-1 text-center">
+                <div className="h-44 rounded-xl bg-[#0B0A08] border border-[#E6B85C]/30 overflow-hidden flex items-center justify-center p-1">
+                  {displayedBackImage && (
+                    <img src={displayedBackImage} alt="หลัง" className="w-full h-full object-contain" />
+                  )}
+                </div>
+                <span className="text-[11px] text-[#C7BCAE]">ด้านหลัง (คราบกรุ/มิติยันต์)</span>
+              </div>
+            </div>
+
+            {/* Amulet Info Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-[#12100E] border border-white/5 text-xs">
+              <div>
+                <span className="text-[#8E8375]">ชื่อพระเครื่อง:</span>
+                <p className="font-bold text-[#F7E5B8]">{result.amulet_info.name}</p>
+              </div>
+              <div>
+                <span className="text-[#8E8375]">วัด / แหล่งกำเนิด:</span>
+                <p className="font-semibold text-[#E8DFD1]">{result.amulet_info.temple}</p>
+              </div>
+              <div>
+                <span className="text-[#8E8375]">ยุคสมัย / ปี:</span>
+                <p className="font-semibold text-[#E8DFD1]">{result.amulet_info.year}</p>
+              </div>
+              <div>
+                <span className="text-[#8E8375]">ความมั่นใจ AI:</span>
+                <p className="font-bold text-emerald-400">{result.confidence.total.toFixed(1)}%</p>
+              </div>
+              <div>
+                <span className="text-[#8E8375]">สภาพความสมบูรณ์:</span>
+                <p className="font-bold text-[#E6B85C]">{result.condition.condition_pct}% ({result.condition.grade})</p>
+              </div>
+              <div>
+                <span className="text-[#8E8375]">ราคาประเมินกลาง:</span>
+                <p className="font-bold text-[#F7E5B8]">฿{formatTHB(result.pricing.estimated_price_thb)} บาท</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-white/10">
+              <span className="text-[11px] text-[#8E8375]">
+                * ผลการวิเคราะห์เบื้องต้นเพื่อประกอบการตัดสินใจ
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] text-xs font-bold transition cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>พิมพ์ / บันทึก (Print)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCertCard(false)}
+                  className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs text-[#C7BCAE] transition cursor-pointer"
+                >
+                  ปิด
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Legal Disclaimer */}
       <footer className="flex items-start gap-2.5 rounded-2xl bg-[#1A1610] border border-[#E6B85C]/20 p-3.5 text-xs text-[#C7BCAE]">
@@ -445,6 +584,7 @@ function DefectPhotoFrame({
   imageSrc,
   isClahe,
   showCircles,
+  showLoupe,
   spots,
   selectedId,
   onSelectSpot,
@@ -453,14 +593,42 @@ function DefectPhotoFrame({
   imageSrc: string | null;
   isClahe: boolean;
   showCircles: boolean;
+  showLoupe: boolean;
   spots: DefectSpot[];
   selectedId: number | null;
   onSelectSpot: (id: number) => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loupePos, setLoupePos] = useState<{ x: number; y: number } | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!showLoupe || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+    setLoupePos({ x, y });
+  };
+
+  const handleMouseLeave = () => {
+    setLoupePos(null);
+  };
+
   return (
     <div className="rounded-2xl bg-[#12100E] border border-white/10 p-3.5 space-y-2.5">
-      <div className="text-xs font-semibold text-[#E6B85C]">{title}</div>
-      <div className="relative h-72 rounded-xl bg-[#0B0A08] overflow-hidden flex items-center justify-center">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold text-[#E6B85C]">{title}</span>
+        {showLoupe && (
+          <span className="text-[11px] text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+            🔍 เลื่อนเมาส์เพื่อส่องขยาย 3x
+          </span>
+        )}
+      </div>
+      <div
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="relative h-72 rounded-xl bg-[#0B0A08] overflow-hidden flex items-center justify-center select-none"
+      >
         {imageSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -472,6 +640,28 @@ function DefectPhotoFrame({
           />
         ) : (
           <span className="text-xs text-[#8E8375]">ไม่มีภาพ</span>
+        )}
+
+        {/* 3x Digital Loupe Lens */}
+        {showLoupe && loupePos && imageSrc && (
+          <div
+            style={{
+              left: `${loupePos.x}px`,
+              top: `${loupePos.y}px`,
+              backgroundImage: `url(${imageSrc})`,
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "320%",
+              backgroundPosition: `${(loupePos.x / (containerRef.current?.offsetWidth || 1)) * 100}% ${(loupePos.y / (containerRef.current?.offsetHeight || 1)) * 100}%`,
+            }}
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-4 border-[#E6B85C] shadow-[0_0_24px_rgba(230,184,92,0.7)] z-30 bg-[#12100E]"
+          >
+            <div className="absolute inset-0 rounded-full border border-white/20 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#E6B85C]" />
+            </div>
+            <span className="absolute bottom-1 right-2 text-[9px] font-bold text-[#E6B85C] bg-black/80 px-1 rounded">
+              3x
+            </span>
+          </div>
         )}
 
         {/* Interactive Circular Defect Markers */}

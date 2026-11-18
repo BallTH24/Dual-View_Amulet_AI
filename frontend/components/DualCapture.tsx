@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   Camera,
   Upload,
@@ -46,17 +46,6 @@ export default function DualCapture({
   onLoadDemoImages,
   onAnalyze,
 }: DualCaptureProps) {
-  const frontInputRef = useRef<HTMLInputElement>(null);
-  const backInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    cb: (file: File) => void
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) cb(file);
-  };
-
   const canSubmit = Boolean(frontFile && backFile);
 
   return (
@@ -83,10 +72,10 @@ export default function DualCapture({
           </button>
         </div>
 
-        {/* Clean 5-model strip (Mock selector when testing) */}
+        {/* Clean 7-model strip (Mock selector when testing) */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
           <span className="text-xs text-[#9A8F80] mr-1">
-            {useMock ? "เลือกรุ่นจำลอง (Demo 5 รุ่น):" : "รุ่นที่รองรับ:"}
+            {useMock ? "เลือกรุ่นจำลอง (Demo 7 รุ่น):" : "รุ่นที่รองรับ:"}
           </span>
           {DEMO_AMULETS.map((item) => {
             const active = useMock && selectedPresetId === item.id;
@@ -108,21 +97,21 @@ export default function DualCapture({
         </div>
       </div>
 
-      {/* Front & Back Photo Slots */}
+      {/* Front & Back Photo Slots with Drag-and-Drop + Dedicated Camera/Upload */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <CaptureSlot
           title="1. ด้านหน้าองค์พระ"
-          hint="ให้เห็นพิมพ์ทรงและเส้นซุ้มชัดเจน"
+          hint="ให้เห็นพิมพ์ทรงและเส้นซุ้มชัดเจน (รองรับลากวางไฟล์ หรือถ่ายจากกล้อง)"
           preview={frontPreview}
-          inputRef={frontInputRef}
-          onChange={(e) => handleFileChange(e, onSelectFront)}
+          file={frontFile}
+          onSelectFile={onSelectFront}
         />
         <CaptureSlot
           title="2. ด้านหลังองค์พระ"
-          hint="ให้เห็นอักขระยันต์หรือพื้นผิวด้านหลัง"
+          hint="ให้เห็นอักขระยันต์หรือพื้นผิวด้านหลัง (รองรับลากวางไฟล์ หรือถ่ายจากกล้อง)"
           preview={backPreview}
-          inputRef={backInputRef}
-          onChange={(e) => handleFileChange(e, onSelectBack)}
+          file={backFile}
+          onSelectFile={onSelectBack}
         />
       </div>
 
@@ -158,27 +147,73 @@ function CaptureSlot({
   title,
   hint,
   preview,
-  inputRef,
-  onChange,
+  file,
+  onSelectFile,
 }: {
   title: string;
   hint: string;
   preview: string | null;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  file: File | null;
+  onSelectFile: (file: File) => void;
 }) {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) onSelectFile(f);
+    e.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile && droppedFile.type.startsWith("image/")) {
+      onSelectFile(droppedFile);
+    }
+  };
+
   return (
     <div className="bg-[#1C1814] rounded-3xl border border-white/10 p-5 flex flex-col gap-4">
-      <div>
-        <h3 className="font-signature text-xl font-bold text-[#F7E5B8]">
-          {title}
-        </h3>
-        <p className="text-xs text-[#9A8F80]">{hint}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="font-signature text-xl font-bold text-[#F7E5B8]">
+            {title}
+          </h3>
+          <p className="text-xs text-[#9A8F80]">{hint}</p>
+        </div>
+        {file && (
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+            ✓ ได้ภาพแล้ว
+          </span>
+        )}
       </div>
 
       <div
-        onClick={() => inputRef.current?.click()}
-        className="relative h-64 rounded-2xl bg-[#12100E] border-2 border-dashed border-[#E6B85C]/35 hover:border-[#E6B85C]/75 overflow-hidden flex items-center justify-center cursor-pointer group transition"
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`relative h-64 rounded-2xl bg-[#12100E] border-2 border-dashed overflow-hidden flex items-center justify-center cursor-pointer group transition ${
+          isDragOver
+            ? "border-[#E6B85C] bg-[#E6B85C]/10 scale-[1.01]"
+            : "border-[#E6B85C]/35 hover:border-[#E6B85C]/75"
+        }`}
       >
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -191,7 +226,10 @@ function CaptureSlot({
           <div className="text-center px-6 space-y-2 text-[#9A8F80]">
             <ImageIcon className="w-10 h-10 mx-auto text-[#E6B85C]/80 group-hover:scale-110 transition" />
             <div className="text-sm font-medium text-[#F5EFE6]">
-              แตะเพื่อถ่ายรูป หรือเลือกรูป
+              {isDragOver ? "ปล่อยไฟล์ภาพที่นี่" : "ลากรูปมาวาง หรือแตะเพื่อเลือกภาพ"}
+            </div>
+            <div className="text-[11px] text-[#7A6F62]">
+              รองรับไฟล์ JPG, PNG, WebP ทุกขนาด (ปรับขนาดอัตโนมัติ)
             </div>
           </div>
         )}
@@ -202,31 +240,39 @@ function CaptureSlot({
         </div>
       </div>
 
+      {/* Hidden Inputs: Separate camera vs gallery */}
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
-        onChange={onChange}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
         className="hidden"
       />
 
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
-          className="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] text-xs font-bold transition cursor-pointer"
+          onClick={() => cameraInputRef.current?.click()}
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] text-xs font-bold transition cursor-pointer shadow-md"
         >
           <Camera className="w-3.5 h-3.5" />
-          <span>ถ่ายรูป</span>
+          <span>เปิดกล้องถ่าย</span>
         </button>
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => fileInputRef.current?.click()}
           className="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-[#F5EFE6] text-xs font-semibold transition cursor-pointer"
         >
           <Upload className="w-3.5 h-3.5" />
-          <span>เลือกรูป</span>
+          <span>เลือกไฟล์รูปภาพ</span>
         </button>
       </div>
     </div>

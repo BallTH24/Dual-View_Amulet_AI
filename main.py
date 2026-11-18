@@ -1,10 +1,13 @@
 import os
+import io
 import json
 import time
 import math
 import base64
+import asyncio
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+from PIL import Image, ImageOps
 
 from dotenv import load_dotenv
 
@@ -150,8 +153,32 @@ class ChatResponse(BaseModel):
     source: str
 
 # ---------------------------------------------------------
-# Helper Functions: OpenCV CLAHE & Defect Analysis
+# Helper Functions: OpenCV CLAHE, EXIF & Defect Analysis
 # ---------------------------------------------------------
+def decode_and_orient_image(image_bytes: bytes) -> Optional[np.ndarray]:
+    """
+    Decodes uploaded image bytes and applies EXIF orientation transpose
+    so smartphone photos (iPhone/Android portrait/landscape) are correctly aligned.
+    """
+    try:
+        pil_img = Image.open(io.BytesIO(image_bytes))
+        pil_img = ImageOps.exif_transpose(pil_img)
+        if pil_img.mode != "RGB":
+            pil_img = pil_img.convert("RGB")
+        return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+    except Exception as e:
+        print(f"[!] EXIF decode error ({e}), falling back to standard OpenCV imdecode")
+        arr = np.frombuffer(image_bytes, np.uint8)
+        return cv2.imdecode(arr, cv2.IMREAD_COLOR)
+
+def run_single_inference(img_bgr: np.ndarray) -> List[Any]:
+    """Worker function for concurrent YOLO prediction in threadpool."""
+    try:
+        return yolo_model.predict(source=img_bgr, imgsz=640, device=DEVICE, verbose=False)
+    except Exception as e:
+        print(f"[!] YOLO predict exception: {e}")
+        return []
+
 def apply_clahe_to_back(image_bgr: np.ndarray) -> np.ndarray:
     """
     Apply OpenCV CLAHE (clipLimit=2.0, tileGridSize=(8,8))
@@ -563,56 +590,52 @@ async def analyze_amulet(
     start_time = time.time()
     load_database()
 
-    # 1. Read Image Files into OpenCV format
+    # 1. Read & Decode Image Files concurrently with EXIF Auto-Orientation
     try:
         front_bytes = await front_image.read()
         back_bytes = await back_image.read()
 
-        front_arr = np.frombuffer(front_bytes, np.uint8)
-        back_arr = np.frombuffer(back_bytes, np.uint8)
-
-        front_bgr = cv2.imdecode(front_arr, cv2.IMREAD_COLOR)
-        back_bgr = cv2.imdecode(back_arr, cv2.IMREAD_COLOR)
+        front_bgr, back_bgr = await asyncio.gather(
+            asyncio.to_thread(decode_and_orient_image, front_bytes),
+            asyncio.to_thread(decode_and_orient_image, back_bytes)
+        )
 
         if front_bgr is None or back_bgr is None:
             raise HTTPException(status_code=400, detail="Invalid image file format. Unable to decode.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Image processing error: {str(e)}")
 
-    # 2. OpenCV CLAHE enhancement specifically for back_image
-    enhanced_back_bgr = apply_clahe_to_back(back_bgr)
+    # 2. OpenCV CLAHE enhancement specifically for back_image (run in threadpool)
+    enhanced_back_bgr = await asyncio.to_thread(apply_clahe_to_back, back_bgr)
 
-    # 3. YOLO11 Inference
+    # 3. Concurrent YOLO11 Inference for Front and Back
+    f_results, b_results = await asyncio.gather(
+        asyncio.to_thread(run_single_inference, front_bgr),
+        asyncio.to_thread(run_single_inference, enhanced_back_bgr)
+    )
+
     front_classes, front_confs, front_boxes = [], [], []
     back_classes, back_confs, back_boxes = [], [], []
 
-    try:
-        f_results = yolo_model.predict(source=front_bgr, imgsz=640, device=DEVICE, verbose=False)
-        if f_results and len(f_results) > 0:
-            names_dict = f_results[0].names
-            boxes = f_results[0].boxes
-            front_boxes = boxes
-            for b in boxes:
-                c_id = int(b.cls[0].item())
-                c_name = names_dict.get(c_id, "")
-                front_classes.append(c_name)
-                front_confs.append(float(b.conf[0].item()))
-    except Exception as e:
-        print(f"[!] Front YOLO predict warning: {e}")
+    if f_results and len(f_results) > 0:
+        names_dict = f_results[0].names
+        boxes = f_results[0].boxes
+        front_boxes = boxes
+        for b in boxes:
+            c_id = int(b.cls[0].item())
+            c_name = names_dict.get(c_id, "")
+            front_classes.append(c_name)
+            front_confs.append(float(b.conf[0].item()))
 
-    try:
-        b_results = yolo_model.predict(source=enhanced_back_bgr, imgsz=640, device=DEVICE, verbose=False)
-        if b_results and len(b_results) > 0:
-            names_dict = b_results[0].names
-            boxes = b_results[0].boxes
-            back_boxes = boxes
-            for b in boxes:
-                c_id = int(b.cls[0].item())
-                c_name = names_dict.get(c_id, "")
-                back_classes.append(c_name)
-                back_confs.append(float(b.conf[0].item()))
-    except Exception as e:
-        print(f"[!] Back YOLO predict warning: {e}")
+    if b_results and len(b_results) > 0:
+        names_dict = b_results[0].names
+        boxes = b_results[0].boxes
+        back_boxes = boxes
+        for b in boxes:
+            c_id = int(b.cls[0].item())
+            c_name = names_dict.get(c_id, "")
+            back_classes.append(c_name)
+            back_confs.append(float(b.conf[0].item()))
 
     # 4. Identify Amulet Model & Confidence Scores
     model_id, front_conf, back_conf = determine_amulet_model(
