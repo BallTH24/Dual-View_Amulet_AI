@@ -385,16 +385,34 @@ def generate_typhoon_summary(
             max_tokens=800,
             timeout=8.0
         )
-        choice = response.choices[0]
-        finish_reason = getattr(choice, "finish_reason", "unknown")
+        choice = response.choices[0] if (response and getattr(response, "choices", None)) else None
+        finish_reason = getattr(choice, "finish_reason", "unknown") if choice else "unknown"
+        
         usage = getattr(response, "usage", None)
-        total_tokens = getattr(usage, "total_tokens", "N/A") if usage else "N/A"
-        print(f"[*] [Typhoon /api/analyze] finish_reason='{finish_reason}', total_tokens={total_tokens}")
+        if isinstance(usage, dict):
+            p_tok = usage.get("prompt_tokens", 0)
+            c_tok = usage.get("completion_tokens", 0)
+            t_tok = usage.get("total_tokens", 0)
+        elif usage:
+            p_tok = getattr(usage, "prompt_tokens", 0)
+            c_tok = getattr(usage, "completion_tokens", 0)
+            t_tok = getattr(usage, "total_tokens", 0)
+        else:
+            p_tok, c_tok, t_tok = 0, 0, 0
 
-        content = choice.message.content
+        print(
+            f"[*] [Typhoon API - Analyze] "
+            f"Finish: '{finish_reason}' | "
+            f"Prompt: {p_tok} tokens | "
+            f"Completion: {c_tok} tokens | "
+            f"Total: {t_tok} tokens",
+            flush=True
+        )
+
+        content = choice.message.content if choice and hasattr(choice, "message") else None
         return content.strip() if content else fallback_text
     except Exception as e:
-        print(f"[!] Typhoon API call failed or timed out: {e}. Using fallback.")
+        print(f"[!] [Typhoon API - Analyze] Call failed or timed out: {e}. Using fallback.", flush=True)
         return fallback_text
 
 # ---------------------------------------------------------
@@ -752,20 +770,38 @@ async def chat_amulet_qa(req: ChatRequest):
             max_tokens=800,
             timeout=8.0
         )
-        choice = completion.choices[0]
-        finish_reason = getattr(choice, "finish_reason", "unknown")
+        choice = completion.choices[0] if (completion and getattr(completion, "choices", None)) else None
+        finish_reason = getattr(choice, "finish_reason", "unknown") if choice else "unknown"
+        
         usage = getattr(completion, "usage", None)
-        total_tokens = getattr(usage, "total_tokens", "N/A") if usage else "N/A"
-        print(f"[*] [Typhoon /api/chat] finish_reason='{finish_reason}', total_tokens={total_tokens}")
+        if isinstance(usage, dict):
+            p_tok = usage.get("prompt_tokens", 0)
+            c_tok = usage.get("completion_tokens", 0)
+            t_tok = usage.get("total_tokens", 0)
+        elif usage:
+            p_tok = getattr(usage, "prompt_tokens", 0)
+            c_tok = getattr(usage, "completion_tokens", 0)
+            t_tok = getattr(usage, "total_tokens", 0)
+        else:
+            p_tok, c_tok, t_tok = 0, 0, 0
 
-        ans = choice.message.content
+        print(
+            f"[*] [Typhoon API - Chat] "
+            f"Finish: '{finish_reason}' | "
+            f"Prompt: {p_tok} tokens | "
+            f"Completion: {c_tok} tokens | "
+            f"Total: {t_tok} tokens",
+            flush=True
+        )
+
+        ans = choice.message.content if choice and hasattr(choice, "message") else None
         return ChatResponse(
             success=True,
             answer=ans.strip() if ans else "ไม่สามารถประมวลผลคำตอบได้ในขณะนี้",
             source="typhoon_llm"
         )
     except Exception as e:
-        print(f"[!] Chat Typhoon API call error or timeout: {e}. Using fallback.")
+        print(f"[!] [Typhoon API - Chat] Call error or timeout: {e}. Using fallback.", flush=True)
         fallback_ans = (
             f"จากข้อมูลบริบทของ {req.amulet_name}: "
             f"ขอแนะนำให้พิจารณาเปรียบเทียบจุดสังเกตพิมพ์ทรงกับภาพองค์ครูอ้างอิงในรายงานสแกน "
