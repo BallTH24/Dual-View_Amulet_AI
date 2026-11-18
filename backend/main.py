@@ -2,8 +2,15 @@ import os
 import json
 import time
 import math
+import base64
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 import cv2
 import numpy as np
@@ -150,7 +157,8 @@ def apply_clahe_to_back(image_bgr: np.ndarray) -> np.ndarray:
 def detect_defects_and_condition(
     image_bgr: np.ndarray,
     yolo_boxes: List[Any],
-    class_names: Dict[int, str]
+    class_names: Dict[int, str],
+    side: str = "front"
 ) -> tuple[float, int, List[Dict[str, Any]]]:
     """
     Calculates condition percentage (50-100%) and defect bounding boxes.
@@ -173,8 +181,11 @@ def detect_defects_and_condition(
                 area = max(1, (bx2 - bx1) * (by2 - by1))
                 conf = float(box.conf[0].item())
                 detected_defects.append({
+                    "side": side,
                     "type": "ตอก/แตกลายงา/สึกหรอ",
                     "bbox": [bx1, by1, bx2, by2],
+                    "x_pct": round(((bx1 + bx2) / 2.0) / max(1, w) * 100.0, 1),
+                    "y_pct": round(((by1 + by2) / 2.0) / max(1, h) * 100.0, 1),
                     "confidence": round(conf * 100, 1),
                     "area_pct": round((area / total_amulet_area) * 100, 2)
                 })
@@ -201,8 +212,11 @@ def detect_defects_and_condition(
                 # Keep inside central amulet region
                 if 0.1 * w < x < 0.9 * w and 0.1 * h < y < 0.9 * h:
                     detected_defects.append({
+                        "side": side,
                         "type": "รอยสึกหรอสัมผัส / รอยกร่อนผิว",
                         "bbox": [int(x), int(y), int(x + bw), int(y + bh)],
+                        "x_pct": round(((x + bw / 2.0) / max(1, w)) * 100.0, 1),
+                        "y_pct": round(((y + bh / 2.0) / max(1, h)) * 100.0, 1),
                         "confidence": round(82.0 + (hash(str((x, y))) % 150) / 10.0, 1),
                         "area_pct": round((c_area / total_amulet_area) * 100, 2)
                     })
@@ -453,10 +467,16 @@ async def analyze_amulet(
 
     # 5. Condition Percentage and Defect Detection
     f_cond, f_defects_cnt, f_defects = detect_defects_and_condition(
-        front_bgr, front_boxes, getattr(yolo_model, 'names', {})
+        front_bgr, front_boxes, getattr(yolo_model, 'names', {}), side="front"
     )
     b_cond, b_defects_cnt, b_defects = detect_defects_and_condition(
-        enhanced_back_bgr, back_boxes, getattr(yolo_model, 'names', {})
+        enhanced_back_bgr, back_boxes, getattr(yolo_model, 'names', {}), side="back"
+    )
+
+    ok_enc, clahe_buf = cv2.imencode(".jpg", enhanced_back_bgr)
+    clahe_back_image = (
+        "data:image/jpeg;base64," + base64.b64encode(clahe_buf.tobytes()).decode("ascii")
+        if ok_enc else None
     )
 
     # Combined condition (average front and back condition)
@@ -526,6 +546,7 @@ async def analyze_amulet(
         },
         "ai_analysis": ai_summary,
         "disclaimer": disclaimer,
+        "clahe_back_image": clahe_back_image,
         "processing_time_ms": elapsed_ms,
         "system_specs": {
             "device": DEVICE,
