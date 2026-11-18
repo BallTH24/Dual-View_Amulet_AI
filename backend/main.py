@@ -344,11 +344,11 @@ def generate_typhoon_summary(
     if not client:
         return fallback_text
 
-    # 2. Prompts tailored to b2c and b2b (3-4 lines concise requirement)
+    # 2. Prompts tailored to b2c and b2b (3-4 concise complete sentences)
     if user_mode.lower() == "b2b":
         system_prompt = (
             "คุณคือที่ปรึกษาประเมินมูลค่าพระเครื่องสำหรับร้านพระและโรงรับจำนำ (B2B) "
-            "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาวไม่เกิน 3-4 บรรทัด "
+            "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาว 3–4 ประโยคที่ครบใจความและจบประโยคอย่างสมบูรณ์ไม่ค้างคา "
             "วิเคราะห์สภาพจุดตำหนิ ความเสี่ยงในการรับเช่า และกรอบราคาประเมินพาณิชย์"
         )
         user_prompt = (
@@ -356,12 +356,12 @@ def generate_typhoon_summary(
             f"สภาพความสมบูรณ์: {condition_pct}% (พบตำหนิ {defect_count} จุด) | ราคากลาง: {estimated_price_thb:,} บาท (ฐาน: {base_price:,} บาท)\n"
             f"กรอบรับจำนำแนะนำ (LTV 60-70%): {int(estimated_price_thb * 0.60):,} – {int(estimated_price_thb * 0.70):,} บาท\n"
             f"จุดสังเกตหน้า: {front_kp} | จุดสังเกตหลัง: {back_kp}\n"
-            "สรุปวิเคราะห์จุดตำหนิ ความเสี่ยง และกรอบราคาพาณิชย์ ความยาวไม่เกิน 3-4 บรรทัด"
+            "สรุปวิเคราะห์จุดตำหนิ ความเสี่ยง และกรอบราคาพาณิชย์ ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
     else:
         system_prompt = (
             "คุณคือผู้เชี่ยวชาญพระเครื่องไทยสำหรับนักสะสมทั่วไป (B2C) "
-            "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาวไม่เกิน 3-4 บรรทัด "
+            "จงตอบเป็นภาษาไทยแบบกระชับ ตรงประเด็น ความยาว 3–4 ประโยคที่ครบใจความและจบประโยคอย่างสมบูรณ์ไม่ค้างคา "
             "อธิบายจุดสังเกตพิมพ์ทรงด้านหน้า คราบกรุ/มิติยันต์ด้านหลัง และแนะนำจังหวัดหรือตลาดที่ปล่อยเช่าได้ราคาดีที่สุด"
         )
         user_prompt = (
@@ -370,7 +370,7 @@ def generate_typhoon_summary(
             f"จุดสังเกตด้านหน้า: {front_kp}\n"
             f"จุดสังเกตด้านหลัง: {back_kp}\n"
             f"พื้นที่แนะนำ: {region} ({reason})\n"
-            "สรุปจุดสังเกตพิมพ์ทรงหน้า-คราบกรุหลัง และแนะนำตลาดปล่อยเช่า ความยาวไม่เกิน 3-4 บรรทัด"
+            "สรุปจุดสังเกตพิมพ์ทรงหน้า-คราบกรุหลัง และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
 
     model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
@@ -382,10 +382,16 @@ def generate_typhoon_summary(
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.3,
-            max_tokens=350,
-            timeout=6.0
+            max_tokens=800,
+            timeout=8.0
         )
-        content = response.choices[0].message.content
+        choice = response.choices[0]
+        finish_reason = getattr(choice, "finish_reason", "unknown")
+        usage = getattr(response, "usage", None)
+        total_tokens = getattr(usage, "total_tokens", "N/A") if usage else "N/A"
+        print(f"[*] [Typhoon /api/analyze] finish_reason='{finish_reason}', total_tokens={total_tokens}")
+
+        content = choice.message.content
         return content.strip() if content else fallback_text
     except Exception as e:
         print(f"[!] Typhoon API call failed or timed out: {e}. Using fallback.")
@@ -699,14 +705,16 @@ async def chat_amulet_qa(req: ChatRequest):
 
     system_instruction = (
         "คุณคือผู้เชี่ยวชาญพระเครื่องไทย AI (Typhoon Amulet Assistant) "
-        "ตอบคำถามของผู้ใช้อย่างละเอียด สุภาพ ถูกต้อง "
+        "ตอบคำถามของผู้ใช้อย่างละเอียด สุภาพ ถูกต้อง ครบใจความ "
         "โดยอ้างอิงจากข้อมูลบริบท (Context Info) ของพระองค์ที่สแกนเป็นหลัก "
-        "หากข้อมูลในบริบทมีระบุไว้ ให้ตอบตามบริบทนั้นอย่างชัดเจนและน่าเชื่อถือ"
+        "หากข้อมูลในบริบทมีระบุไว้ ให้ตอบตามบริบทนั้นอย่างชัดเจนและน่าเชื่อถือ "
+        "เรียบเรียงคำตอบให้จบประโยคอย่างสมบูรณ์ ไม่ค้างคากลางประโยค"
     )
 
     user_message = (
         f"【ข้อมูลบริบทพระเครื่องที่สแกนได้】\n{req.context_info}\n\n"
-        f"【คำถามจากผู้ใช้】: {req.question}"
+        f"【คำถามจากผู้ใช้】: {req.question}\n\n"
+        f"กรุณาตอบคำถามให้ชัดเจน ครบถ้วน และจบประโยคอย่างสมบูรณ์"
     )
 
     if not client:
@@ -741,10 +749,16 @@ async def chat_amulet_qa(req: ChatRequest):
                 {"role": "user", "content": user_message}
             ],
             temperature=0.3,
-            max_tokens=250,
-            timeout=6.0
+            max_tokens=800,
+            timeout=8.0
         )
-        ans = completion.choices[0].message.content
+        choice = completion.choices[0]
+        finish_reason = getattr(choice, "finish_reason", "unknown")
+        usage = getattr(completion, "usage", None)
+        total_tokens = getattr(usage, "total_tokens", "N/A") if usage else "N/A"
+        print(f"[*] [Typhoon /api/chat] finish_reason='{finish_reason}', total_tokens={total_tokens}")
+
+        ans = choice.message.content
         return ChatResponse(
             success=True,
             answer=ans.strip() if ans else "ไม่สามารถประมวลผลคำตอบได้ในขณะนี้",

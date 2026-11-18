@@ -364,19 +364,19 @@ export default function ResultDashboard({
           )}
         </div>
 
-        <p className="rounded-2xl bg-[#12100E] p-4 text-xs sm:text-sm text-[#E8DFD1] leading-relaxed whitespace-pre-line">
+        <div className="rounded-2xl bg-[#12100E] p-4 text-xs sm:text-sm text-[#E8DFD1] leading-relaxed whitespace-pre-line break-words">
           {result.ai_analysis}
-        </p>
+        </div>
 
         {messages.length > 0 && (
-          <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+          <div className="space-y-2.5">
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`p-3.5 rounded-2xl text-xs sm:text-sm whitespace-pre-line ${
+                className={`p-3.5 rounded-2xl text-xs sm:text-sm whitespace-pre-line break-words leading-relaxed ${
                   m.role === "user"
-                    ? "bg-[#E6B85C]/15 text-[#F7E5B8] ml-8"
-                    : "bg-[#12100E] text-[#E8DFD1] mr-8"
+                    ? "bg-[#E6B85C]/15 text-[#F7E5B8] ml-6 sm:ml-12 border border-[#E6B85C]/30"
+                    : "bg-[#12100E] text-[#E8DFD1] mr-6 sm:mr-12 border border-white/5"
                 }`}
               >
                 {m.content}
