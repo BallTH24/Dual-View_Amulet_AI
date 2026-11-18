@@ -18,6 +18,7 @@ import {
   analyzeAmulet,
   checkBackendHealth,
   DEFAULT_API_BASE,
+  getDefaultApiBase,
   DEMO_AMULETS,
 } from "@/lib/api";
 
@@ -26,37 +27,53 @@ function createSampleAmuletFile(
   label: string
 ): Promise<File> {
   return new Promise((resolve) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 480;
-    canvas.height = 640;
-    const ctx = canvas.getContext("2d")!;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 480;
+      canvas.height = 640;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(new File([new Blob([])], `demo_${side}.png`, { type: "image/png" }));
+        return;
+      }
 
-    ctx.fillStyle = "#12100E";
-    ctx.fillRect(0, 0, 480, 640);
+      ctx.fillStyle = "#12100E";
+      ctx.fillRect(0, 0, 480, 640);
 
-    ctx.fillStyle = side === "front" ? "#6F583F" : "#5D4934";
-    ctx.beginPath();
-    ctx.roundRect(110, 80, 260, 460, [110, 110, 28, 28]);
-    ctx.fill();
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = "#E6B85C";
-    ctx.stroke();
+      ctx.fillStyle = side === "front" ? "#6F583F" : "#5D4934";
+      ctx.beginPath();
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(110, 80, 260, 460, [110, 110, 28, 28]);
+      } else {
+        ctx.rect(110, 80, 260, 460);
+      }
+      ctx.fill();
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "#E6B85C";
+      ctx.stroke();
 
-    ctx.fillStyle = "#F7E5B8";
-    ctx.font = "bold 24px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      side === "front" ? "ด้านหน้า (พิมพ์ทรง)" : "ด้านหลัง (อักขระยันต์)",
-      240,
-      300
-    );
-    ctx.font = "16px sans-serif";
-    ctx.fillStyle = "#E8DFD1";
-    ctx.fillText(label, 240, 340);
+      ctx.fillStyle = "#F7E5B8";
+      ctx.font = "bold 24px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        side === "front" ? "ด้านหน้า (พิมพ์ทรง)" : "ด้านหลัง (อักขระยันต์)",
+        240,
+        300
+      );
+      ctx.font = "16px sans-serif";
+      ctx.fillStyle = "#E8DFD1";
+      ctx.fillText(label, 240, 340);
 
-    canvas.toBlob((blob) => {
-      resolve(new File([blob!], `demo_${side}.png`, { type: "image/png" }));
-    }, "image/png");
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(new File([blob], `demo_${side}.png`, { type: "image/png" }));
+        } else {
+          resolve(new File([new Blob([])], `demo_${side}.png`, { type: "image/png" }));
+        }
+      }, "image/png");
+    } catch {
+      resolve(new File([new Blob([])], `demo_${side}.png`, { type: "image/png" }));
+    }
   });
 }
 
@@ -81,6 +98,14 @@ export default function HomePage() {
 
   const [showCertModal, setShowCertModal] = useState(false);
   const [certSubmitted, setCertSubmitted] = useState(false);
+
+  // Sync API Base on client mount (e.g. if accessed via mobile/LAN IP)
+  useEffect(() => {
+    const detected = getDefaultApiBase();
+    if (detected !== apiBase) {
+      setApiBase(detected);
+    }
+  }, []);
 
   // Auto-detect live FastAPI backend on mount; fallback cleanly to Mock if unreachable
   useEffect(() => {

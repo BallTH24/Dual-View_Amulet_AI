@@ -28,6 +28,7 @@ import cv2
 import numpy as np
 import torch
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from ultralytics import YOLO
@@ -393,6 +394,113 @@ def generate_typhoon_summary(
 # ---------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------
+@app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def root_index():
+    """
+    Friendly root endpoint that redirects users to the Next.js frontend (port 3000)
+    or shows an informative status page if opened directly.
+    """
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Dual-View Amulet AI Backend</title>
+        <meta http-equiv="refresh" content="2; url=http://localhost:3000">
+        <style>
+            * { box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: #12100E;
+                color: #F5EFE6;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+                text-align: center;
+            }
+            .card {
+                background: #1C1814;
+                border: 1px solid rgba(230, 184, 92, 0.4);
+                border-radius: 24px;
+                padding: 40px 32px;
+                max-width: 520px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            }
+            .badge {
+                display: inline-block;
+                background: rgba(16, 185, 129, 0.15);
+                color: #34D399;
+                border: 1px solid rgba(16, 185, 129, 0.4);
+                padding: 4px 14px;
+                border-radius: 9999px;
+                font-size: 13px;
+                font-weight: 600;
+                margin-bottom: 16px;
+            }
+            h1 {
+                font-size: 26px;
+                font-weight: 700;
+                color: #F7E5B8;
+                margin: 0 0 12px 0;
+            }
+            p {
+                color: #C7BCAE;
+                font-size: 14px;
+                line-height: 1.6;
+                margin: 0 0 20px 0;
+            }
+            .btn {
+                display: inline-block;
+                background: #E6B85C;
+                color: #18130D;
+                font-weight: 700;
+                text-decoration: none;
+                padding: 12px 28px;
+                border-radius: 9999px;
+                font-size: 14px;
+                transition: transform 0.2s, background 0.2s;
+            }
+            .btn:hover {
+                background: #F0C975;
+                transform: translateY(-2px);
+            }
+            .subtext {
+                font-size: 12px;
+                color: #8E8375;
+                margin-top: 16px;
+                margin-bottom: 0;
+            }
+        </style>
+        <script>
+            // If opened via LAN IP, redirect to port 3000 on that same hostname
+            if (window.location.hostname) {
+                const targetUrl = 'http://' + window.location.hostname + ':3000';
+                setTimeout(function() {
+                    window.location.href = targetUrl;
+                }, 1500);
+            }
+        </script>
+    </head>
+    <body>
+        <div class="card">
+            <div class="badge">● FastAPI Backend พร้อมทำงาน (Status: OK)</div>
+            <h1>ส่องพระดอทคอม AI</h1>
+            <p>
+                พอร์ต <strong>8000</strong> คือระบบ Backend API สำหรับประมวลผลโมเดล YOLO11 และ Typhoon AI<br>
+                ระบบกำลังพาคุณไปยังหน้าเว็บ Frontend (พอร์ต 3000)...
+            </p>
+            <a class="btn" href="http://localhost:3000">เข้าสู่หน้าเว็บทันที (พอร์ต 3000)</a>
+            <p class="subtext">* หากระบบไม่เปลี่ยนหน้าอัตโนมัติ กรุณากดปุ่มด้านบน หรือเปิด <a href="http://localhost:3000" style="color:#E6B85C;">http://localhost:3000</a></p>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
 @app.get("/health")
 async def health_check():
     """

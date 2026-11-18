@@ -28,9 +28,16 @@ export default function RootLayout({
   return (
     <html
       lang="th"
+      suppressHydrationWarning
       className={`${charmonman.variable} ${notoSansThai.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#12100E] text-[#F5EFE6]">
+      <body
+        suppressHydrationWarning
+        data-gramm="false"
+        data-grammarly-skip="true"
+        data-enable-grammarly="false"
+        className="min-h-full flex flex-col bg-[#12100E] text-[#F5EFE6]"
+      >
         {children}
       </body>
     </html>
