@@ -35,7 +35,7 @@ export default function HomeChoices({
         <button
           type="button"
           onClick={() => onChooseIntent("inspect")}
-          className="w-full text-left group rounded-3xl bg-gradient-to-br from-[#261E15] to-[#1C1814] border-2 border-[#E6B85C]/60 hover:border-[#E6B85C] p-6 sm:p-7 shadow-xl transition-all duration-200 hover:-translate-y-0.5 flex items-center justify-between gap-4 cursor-pointer"
+          className="relative z-10 w-full text-left group rounded-3xl bg-gradient-to-br from-[#261E15] to-[#1C1814] border-2 border-[#E6B85C]/60 hover:border-[#E6B85C] p-6 sm:p-7 shadow-xl transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] flex items-center justify-between gap-4 cursor-pointer touch-manipulation"
         >
           <div className="flex items-start sm:items-center gap-4 sm:gap-5">
             <div className="w-14 h-14 shrink-0 rounded-2xl bg-[#E6B85C] text-[#18130D] flex items-center justify-center shadow-md">
@@ -61,7 +61,7 @@ export default function HomeChoices({
           <button
             type="button"
             onClick={() => onChooseIntent("market")}
-            className="text-left group rounded-3xl bg-[#1C1814] border border-white/10 hover:border-[#E6B85C]/50 p-5 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 flex flex-col justify-between gap-4 cursor-pointer"
+            className="relative z-10 text-left group rounded-3xl bg-[#1C1814] border border-white/10 hover:border-[#E6B85C]/50 p-5 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between gap-4 cursor-pointer touch-manipulation"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-[#E6B85C]/15 text-[#E6B85C] flex items-center justify-center">
@@ -83,7 +83,7 @@ export default function HomeChoices({
           <button
             type="button"
             onClick={() => onChooseIntent("assistant")}
-            className="text-left group rounded-3xl bg-[#1C1814] border border-white/10 hover:border-[#E6B85C]/50 p-5 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 flex flex-col justify-between gap-4 cursor-pointer"
+            className="relative z-10 text-left group rounded-3xl bg-[#1C1814] border border-white/10 hover:border-[#E6B85C]/50 p-5 sm:p-6 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] flex flex-col justify-between gap-4 cursor-pointer touch-manipulation"
           >
             <div className="space-y-2.5">
               <div className="w-11 h-11 rounded-2xl bg-[#E6B85C]/15 text-[#E6B85C] flex items-center justify-center">
@@ -109,7 +109,7 @@ export default function HomeChoices({
         <button
           type="button"
           onClick={onQuickInspectDemo}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm text-[#F7E5B8] transition cursor-pointer"
+          className="relative z-10 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-[0.99] border border-white/10 text-xs sm:text-sm text-[#F7E5B8] transition cursor-pointer touch-manipulation"
         >
           <Sparkles className="w-4 h-4 text-[#E6B85C]" />
           <span>ดูตัวอย่างผลตรวจพร้อมวงกลมตำหนิทันที (Demo)</span>

@@ -246,7 +246,7 @@ export default function HomePage() {
         onGoHome={handleGoHome}
       />
 
-      <main className="flex-1 w-full px-4 sm:px-6 py-6 sm:py-8">
+      <main className="relative z-10 flex-1 w-full px-4 sm:px-6 py-6 sm:py-8">
         {errorMsg && (
           <div className="max-w-4xl mx-auto mb-6 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-rose-200 px-5 py-3.5 text-xs sm:text-sm">
             <strong>เชื่อมต่อ Backend ไม่สำเร็จ:</strong> {errorMsg}

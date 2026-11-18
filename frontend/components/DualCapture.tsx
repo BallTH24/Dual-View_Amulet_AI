@@ -140,7 +140,7 @@ export default function DualCapture({
           type="button"
           disabled={!canSubmit}
           onClick={onAnalyze}
-          className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] font-bold text-sm shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+          className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] active:scale-[0.98] text-[#18130D] font-bold text-sm shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer touch-manipulation"
         >
           ตรวจพระ &amp; หาตำหนิเลย →
         </button>
@@ -267,7 +267,7 @@ function CaptureSlot({
         <button
           type="button"
           onClick={() => cameraInputRef.current?.click()}
-          className="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] text-xs font-bold transition cursor-pointer shadow-md"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] active:scale-[0.98] text-[#18130D] text-xs font-bold transition cursor-pointer shadow-md touch-manipulation"
         >
           <Camera className="w-3.5 h-3.5" />
           <span>เปิดกล้องถ่าย</span>
@@ -275,7 +275,7 @@ function CaptureSlot({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-[#F5EFE6] text-xs font-semibold transition cursor-pointer"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 active:scale-[0.98] text-[#F5EFE6] text-xs font-semibold transition cursor-pointer touch-manipulation"
         >
           <Upload className="w-3.5 h-3.5" />
           <span>เลือกไฟล์รูปภาพ</span>

@@ -43,7 +43,7 @@ export default function HeaderBar({
           <button
             type="button"
             onClick={onGoHome}
-            className="flex items-center gap-3.5 text-left group cursor-pointer"
+            className="relative z-10 flex items-center gap-3.5 text-left group cursor-pointer touch-manipulation active:scale-[0.99]"
           >
             <div className="w-11 h-12 shrink-0 rounded-t-full rounded-b-2xl bg-gradient-to-b from-[#F5D782] via-[#C99636] to-[#7A5314] p-[2px] shadow-md flex items-center justify-center">
               <div className="w-full h-full rounded-t-full rounded-b-[14px] bg-[#18130D] flex items-center justify-center">
@@ -64,12 +64,12 @@ export default function HeaderBar({
           </button>
 
           {/* Minimal Right Controls */}
-          <div className="flex items-center gap-2">
+          <div className="relative z-10 flex items-center gap-2">
             {step !== "home" && (
               <button
                 type="button"
                 onClick={onGoHome}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs text-[#E8DFD1] transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/5 hover:bg-white/10 active:scale-[0.98] text-xs text-[#E8DFD1] transition cursor-pointer touch-manipulation"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>หน้าแรก</span>
@@ -80,7 +80,7 @@ export default function HeaderBar({
               type="button"
               onClick={() => setShowSettings(!showSettings)}
               aria-label="ตั้งค่าระบบ"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs text-[#C7BCAE] border border-white/10 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 active:scale-[0.98] text-xs text-[#C7BCAE] border border-white/10 transition cursor-pointer touch-manipulation"
             >
               {useMock ? (
                 <>
