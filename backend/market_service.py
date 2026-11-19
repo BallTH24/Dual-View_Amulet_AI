@@ -213,7 +213,7 @@ def generate_typhoon_market_insight(
             ],
             temperature=0.3,
             max_tokens=300,
-            timeout=6.0
+            timeout=15.0
         )
         content = response.choices[0].message.content.strip() if response and response.choices else None
         if content:

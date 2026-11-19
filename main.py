@@ -16,16 +16,20 @@ from dotenv import load_dotenv
 # ---------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 
-# Ensure .env is loaded whether run from root or backend/
-for env_candidate in [
-    BASE_DIR / ".env",
-    BASE_DIR / "backend" / ".env",
-    BASE_DIR.parent / ".env",
-]:
-    if env_candidate.exists():
-        load_dotenv(env_candidate, override=True)
-        break
-load_dotenv()
+def reload_env_files():
+    """Load .env from both current directory and parent directory."""
+    script_dir = Path(__file__).resolve().parent
+    env_paths = [
+        script_dir / ".env",
+        script_dir.parent / ".env",
+        script_dir / "backend" / ".env",
+    ]
+    for env_file in env_paths:
+        if env_file.exists():
+            load_dotenv(env_file, override=False)
+    load_dotenv()
+
+reload_env_files()
 
 import cv2
 import numpy as np
@@ -130,13 +134,15 @@ TYPHOON_BASE_URL = "https://api.opentyphoon.ai/v1"
 TYPHOON_MODEL = os.getenv("TYPHOON_MODEL", "typhoon-v2.5-30b-a3b-instruct")
 
 def get_typhoon_client() -> Optional[openai.OpenAI]:
-    api_key = os.getenv("TYPHOON_API_KEY", "")
-    if not api_key or not api_key.strip():
+    reload_env_files()
+    api_key = os.getenv("TYPHOON_API_KEY", "").strip()
+    if not api_key:
+        print("[!] [Typhoon API] Warning: TYPHOON_API_KEY not found in environment or .env files.", flush=True)
         return None
     return openai.OpenAI(
         base_url=TYPHOON_BASE_URL,
-        api_key=api_key.strip(),
-        timeout=6.0
+        api_key=api_key,
+        timeout=15.0
     )
 
 # ---------------------------------------------------------
@@ -988,7 +994,7 @@ def generate_typhoon_summary(
             "สรุปจุดสังเกตพิมพ์ทรงหน้า (และคราบกรุหลังถ้ามี) พร้อมระบุสภาพจุดตำหนิที่ตรวจพบ และแนะนำตลาดปล่อยเช่า ความยาว 3–4 ประโยคที่จบสมบูรณ์ทุกประโยค"
         )
 
-    model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
+    model_name = os.getenv("TYPHOON_MODEL") or "typhoon-v2.5-30b-a3b-instruct"
     try:
         response = client.chat.completions.create(
             model=model_name,
@@ -998,7 +1004,7 @@ def generate_typhoon_summary(
             ],
             temperature=0.3,
             max_tokens=800,
-            timeout=8.0
+            timeout=15.0
         )
         choice = response.choices[0] if (response and getattr(response, "choices", None)) else None
         finish_reason = getattr(choice, "finish_reason", "unknown") if choice else "unknown"
@@ -1027,7 +1033,7 @@ def generate_typhoon_summary(
         content = choice.message.content if choice and hasattr(choice, "message") else None
         return content.strip() if content else fallback_text
     except Exception as e:
-        print(f"[!] [Typhoon API - Analyze] Call failed or timed out: {e}. Using fallback.", flush=True)
+        print(f"[Typhoon API Error] {type(e).__name__}: {e}", flush=True)
         return fallback_text
 
 # ---------------------------------------------------------
@@ -1147,6 +1153,7 @@ async def health_check():
     Typhoon API status, and loaded amulet database models.
     """
     load_database()
+    reload_env_files()
     api_key = os.getenv("TYPHOON_API_KEY", "")
     model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
     return {
@@ -1411,19 +1418,68 @@ async def analyze_amulet(
         "ambiguity_warning": ambiguity_warning
     }
 
+def get_chat_offline_fallback(question: str, amulet_name: str, context_info: str = "") -> str:
+    """
+    Offline fallback responder for POST /api/chat.
+    Provides clear answers about Amulet Engine capabilities for general questions,
+    and structured guidance for amulet-specific queries.
+    """
+    q = (question or "").lower().strip()
+
+    # 1. General system capabilities (Who are you? What can you do?)
+    general_keywords = [
+        "คุณคือใคร", "เธอคือใคร", "คุณเป็นใคร", "ทำอะไรได้", "ช่วยอะไรได้",
+        "คืออะไร", "ระบบคืออะไร", "amulet engine", "ส่องพระ", "สวัสดี",
+        "hi", "hello", "ใครสร้าง", "แนะนำตัว", "ความสามารถ"
+    ]
+    if any(k in q for k in general_keywords):
+        return (
+            "สวัสดีครับ ผมคือผู้เชี่ยวชาญพระเครื่อง AI ประจำแพลตฟอร์ม Amulet Engine\n\n"
+            "ผมพร้อมช่วยเหลือท่านในการตรวจสอบและประเมินพระเครื่องด้วยฟังก์ชันหลักดังนี้ครับ:\n"
+            "1. จำแนกพิมพ์ทรงพระเครื่องยอดนิยม (เช่น พระสมเด็จ 3 วัด, พระนางพญา, พระซุ้มกอ, พระรอด, พระผงสุพรรณ) ด้วยโมเดล YOLOv11s\n"
+            "2. สแกนตรวจจับจุดตำหนิ รอยบิ่น รอยกะเทาะ พร้อมวงกลมชี้จุดระดับพิกเซลด้วยระบบ OpenCV Hybrid Defect Detection\n"
+            "3. ตรวจสอบนิติวิทยาศาสตร์ภาพถ่าย 3 ชั้น (Image Forensics: Deep Metadata/C2PA, 8x8 ELA, Sensor Noise Residual) ป้องกันภาพ AI และภาพรีทัชลบตำหนิ\n"
+            "4. ประเมินเปอร์เซ็นต์ความสมบูรณ์และราคากลางตามสภาพจริง พร้อมกรอบวงเงินรับเช่า B2B LTV (60–70%)\n\n"
+            "ท่านสามารถถ่ายภาพพระด้านหน้า–หลัง หรือพิมพ์คำถามเกี่ยวกับพระองค์ที่สแกนเข้ามาได้เลยครับ"
+        )
+
+    # 2. Authenticity / Defects
+    if any(w in q for w in ["แท้", "เก๊", "ปลอม", "ดูยังไง", "ตำหนิ", "ส่อง"]):
+        return (
+            f"ในการพิจารณาความแท้ของ {amulet_name} ตามหลักการตรวจสอบ:\n"
+            f"1. ด้านหน้า: สังเกตความคมชัดของพิมพ์ทรง เส้นซุ้ม มวลสาร และจุดตำหนิที่ระบบวงกลมระบุไว้\n"
+            f"2. ด้านหลัง: ตรวจสอบร่องรอยยันต์ คราบกรุ โค้ดตอก และรอยตัดขอบข้างซึ่งผ่านการเร่งมิติ CLAHE ในการสแกน\n\n"
+            f"ทั้งนี้ การประเมินของ Amulet Engine เป็นการตรวจเบื้องต้นทางคอมพิวเตอร์วิทัศน์ หากต้องการใบเซอร์รับรองพระแท้มาตรฐาน สามารถกดปุ่ม 'ส่งต่อออกบัตรรับรอง' เพื่อส่งตรวจองค์จริงกับสมาคมพันธมิตรได้ครับ"
+        )
+
+    # 3. Pricing / Market / Selling
+    if any(w in q for w in ["ราคา", "ขาย", "ปล่อย", "แพง", "เท่าไหร่", "มูลค่า", "เช่า"]):
+        return (
+            f"สำหรับมูลค่าของ {amulet_name} จะคำนวณตามสภาพความสมบูรณ์จริงเป็นหลัก "
+            f"โดยอ้างอิงจากรอยบิ่นและตำหนิที่ตรวจพบเทียบกับราคากลางตลาด "
+            f"หากนำไปปล่อยเช่าในศูนย์พระเครื่องหรือภูมิภาคที่ระบบแนะนำ จะช่วยให้ได้รับราคาที่เป็นธรรมและมีสภาพคล่องในการหมุนเวียนสูงครับ"
+        )
+
+    # 4. Amulet specific context fallback
+    return (
+        f"เกี่ยวกับ {amulet_name}: ตามข้อมูลที่วิเคราะห์ได้ พระองค์นี้มีเอกลักษณ์สำคัญตามพิมพ์ทรงมาตรฐาน "
+        f"ท่านสามารถกดแตะที่วงกลมตำหนิบนภาพเพื่อดูรายละเอียดแต่ละจุด หรือเปิดดูภาพขยายแว่นส่องพระ 3x เพื่อพิจารณารายละเอียดเนื้อพระอย่างใกล้ชิดครับ"
+    )
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_amulet_qa(req: ChatRequest):
     """
-    In-depth Q&A regarding the scanned amulet based strictly on context_info
-    with 6.0s timeout and automatic fallback.
+    In-depth Q&A regarding the scanned amulet or Amulet Engine capabilities
+    with 15.0s timeout and automatic fallback.
     """
     client = get_typhoon_client()
 
     system_instruction = (
-        "คุณคือผู้เชี่ยวชาญพระเครื่องไทย AI (Typhoon Amulet Assistant) "
-        "ตอบคำถามของผู้ใช้อย่างละเอียด สุภาพ ถูกต้อง ครบใจความ "
-        "โดยอ้างอิงจากข้อมูลบริบท (Context Info) ของพระองค์ที่สแกนเป็นหลัก "
-        "หากข้อมูลในบริบทมีระบุไว้ ให้ตอบตามบริบทนั้นอย่างชัดเจนและน่าเชื่อถือ "
+        "คุณคือผู้เชี่ยวชาญพระเครื่องไทย AI ประจำแพลตฟอร์ม Amulet Engine "
+        "ตอบคำถามของผู้ใช้อย่างเป็นมิตร สุภาพ ถูกต้อง ครบใจความ "
+        "มีความเชี่ยวชาญทั้งการจำแนกพิมพ์ทรง การตรวจจับจุดตำหนิ นิติวิทยาศาสตร์ภาพถ่าย และการประเมินราคากลาง "
+        "หากผู้ใช้ถามคำถามทั่วไปเกี่ยวกับตัวคุณหรือความสามารถของระบบ ให้แนะนำแพลตฟอร์ม Amulet Engine และบริการต่างๆ อย่างชัดเจน "
+        "หากผู้ใช้ถามเกี่ยวกับพระเครื่ององค์ที่สแกน ให้อ้างอิงจากข้อมูลบริบท (Context Info) ของพระองค์ที่สแกนเป็นหลัก "
         "เรียบเรียงคำตอบให้จบประโยคอย่างสมบูรณ์ ไม่ค้างคากลางประโยค"
     )
 
@@ -1434,29 +1490,10 @@ async def chat_amulet_qa(req: ChatRequest):
     )
 
     if not client:
-        # High quality offline fallback responder
-        q = req.question.lower()
-        if any(w in q for w in ["แท้", "เก๊", "ปลอม", "ดูยังไง", "ตำหนิ"]):
-            ans = (
-                f"ในการพิจารณาความแท้ของ {req.amulet_name} ตามหลักการตรวจสอบ:\n"
-                f"1. ด้านหน้า: ควรสังเกตความคมชัดของพิมพ์ทรงและมวลสารตามที่ระบุในรายงาน\n"
-                f"2. ด้านหลัง: ตรวจสอบร่องรอยยันต์ โค้ดตอก และรอยตัดขอบข้างซึ่งผ่านการเร่งมิติ CLAHE ในการสแกน\n"
-                f"หากต้องการความมั่นใจ 100% แนะนำให้ออกบัตรรับรองจากสมาคมผู้นิยมพระเครื่องพระบูชาไทยครับ"
-            )
-        elif any(w in q for w in ["ราคา", "ขาย", "ปล่อย", "แพง", "เท่าไหร่"]):
-            ans = (
-                f"สำหรับมูลค่าของ {req.amulet_name} จะขึ้นอยู่กับสภาพความสมบูรณ์เป็นหลัก "
-                f"จากระบบที่ประเมินไว้จะอ้างอิงสภาพผิวและตำหนิ "
-                f"หากนำไปปล่อยเช่าในพื้นที่ศูนย์กลางตลาดตามที่ระบบแนะนำ จะช่วยให้ได้รับราคาที่เป็นธรรมและมีผู้สนใจเช่าบูชารวดเร็วครับ"
-            )
-        else:
-            ans = (
-                f"เกี่ยวกับ {req.amulet_name}: ตามข้อมูลที่ตรวจพบ พระองค์นี้มีเอกลักษณ์สำคัญทั้งพิมพ์ทรงด้านหน้าและยันต์ด้านหลัง "
-                f"หากท่านต้องการส่งประกวดหรือปล่อยเช่าต่อ ควรเก็บรักษาในตลับหรือเลี่ยมกรอบกันน้ำเพื่อรักษาสภาพผิวเดิมไว้ครับ"
-            )
+        ans = get_chat_offline_fallback(req.question, req.amulet_name, req.context_info)
         return ChatResponse(success=True, answer=ans, source="system_fallback")
 
-    model_name = os.getenv("TYPHOON_MODEL", TYPHOON_MODEL)
+    model_name = os.getenv("TYPHOON_MODEL") or "typhoon-v2.5-30b-a3b-instruct"
     try:
         completion = client.chat.completions.create(
             model=model_name,
@@ -1466,7 +1503,7 @@ async def chat_amulet_qa(req: ChatRequest):
             ],
             temperature=0.3,
             max_tokens=800,
-            timeout=8.0
+            timeout=15.0
         )
         choice = completion.choices[0] if (completion and getattr(completion, "choices", None)) else None
         finish_reason = getattr(choice, "finish_reason", "unknown") if choice else "unknown"
@@ -1495,16 +1532,12 @@ async def chat_amulet_qa(req: ChatRequest):
         ans = choice.message.content if choice and hasattr(choice, "message") else None
         return ChatResponse(
             success=True,
-            answer=ans.strip() if ans else "ไม่สามารถประมวลผลคำตอบได้ในขณะนี้",
+            answer=ans.strip() if ans else get_chat_offline_fallback(req.question, req.amulet_name, req.context_info),
             source="typhoon_llm"
         )
     except Exception as e:
-        print(f"[!] [Typhoon API - Chat] Call error or timeout: {e}. Using fallback.", flush=True)
-        fallback_ans = (
-            f"จากข้อมูลบริบทของ {req.amulet_name}: "
-            f"ขอแนะนำให้พิจารณาเปรียบเทียบจุดสังเกตพิมพ์ทรงกับภาพองค์ครูอ้างอิงในรายงานสแกน "
-            f"และรักษาผิวพระเดิมไว้ไม่ให้ถูกขัดล้างเพื่อคงมูลค่าสะสมสูงสุดครับ"
-        )
+        print(f"[Typhoon API Error] {type(e).__name__}: {e}", flush=True)
+        fallback_ans = get_chat_offline_fallback(req.question, req.amulet_name, req.context_info)
         return ChatResponse(success=True, answer=fallback_ans, source="system_fallback")
 
 # ---------------------------------------------------------
