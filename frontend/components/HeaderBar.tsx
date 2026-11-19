@@ -61,7 +61,7 @@ export default function HeaderBar({
 
             <div>
               <h1 className="font-signature text-2xl sm:text-3xl font-bold tracking-wide text-[#F7E5B8] group-hover:text-white transition leading-tight">
-                ส่องพระดอทคอม AI
+                Amulet Engine
               </h1>
               <p className="text-[11px] sm:text-xs text-[#B8AD9E]">
                 ถ่ายภาพตรวจตำหนิ • ประเมินราคากลางตามภูมิภาค

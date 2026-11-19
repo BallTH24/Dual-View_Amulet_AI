@@ -15,9 +15,9 @@ const notoSansThai = Noto_Sans_Thai({
 });
 
 export const metadata: Metadata = {
-  title: "ส่องพระ AI | ตรวจตำหนิและเช็กราคากลางพระเครื่อง",
+  title: "Amulet Engine | ตรวจตำหนิและเช็กราคากลางพระเครื่อง",
   description:
-    "เว็บแอปถ่ายภาพตรวจตำหนิพระเครื่อง 2 ด้าน พร้อมวงกลมชี้จุดตำหนิและประเมินราคากลางตามภูมิภาค",
+    "Amulet Engine - เว็บแอปถ่ายภาพตรวจตำหนิพระเครื่อง 2 ด้าน พร้อมวงกลมชี้จุดตำหนิและประเมินราคากลางตามภูมิภาค",
 };
 
 export default function RootLayout({

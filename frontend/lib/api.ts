@@ -23,7 +23,7 @@ export interface DemoAmuletPreset {
 }
 
 const DISCLAIMER_TEXT =
-  "การประเมินเบื้องต้นโดยระบบปัญญาประดิษฐ์ (Dual-View Amulet AI) เพื่อเป็นข้อมูลประกอบการตัดสินใจเบื้องต้นเท่านั้น มิใช่ใบรับรองพระแท้ทางกฎหมาย";
+  "การประเมินเบื้องต้นโดยระบบปัญญาประดิษฐ์ (Amulet Engine) เพื่อเป็นข้อมูลประกอบการตัดสินใจเบื้องต้นเท่านั้น มิใช่ใบรับรองพระแท้ทางกฎหมาย";
 
 export const DEMO_AMULETS: DemoAmuletPreset[] = [
   {
@@ -628,7 +628,7 @@ export async function chatWithTyphoon(params: {
   if (params.useMock) {
     await new Promise((r) => setTimeout(r, 550));
     if (params.question.includes("แคปชัน") || params.question.includes("ขาย")) {
-      return `✨ เปิดให้เช่าบูชา: ${params.amuletName}\n📌 สภาพสวยเดิม พิจารณาเบื้องต้นแล้วน่าสะสม\n💰 ราคาประเมินตามสภาพ นัดรับได้หรือส่งพร้อมประกัน\n#พระเครื่อง #เช่าพระ #ส่องพระAI`;
+      return `✨ เปิดให้เช่าบูชา: ${params.amuletName}\n📌 สภาพสวยเดิม พิจารณาเบื้องต้นแล้วน่าสะสม\n💰 ราคาประเมินตามสภาพ นัดรับได้หรือส่งพร้อมประกัน\n#พระเครื่อง #เช่าพระ #AmuletEngine`;
     }
     return `จากผลวิเคราะห์เบื้องต้นของ ${params.amuletName}: สามารถกดแตะวงกลมบนภาพเพื่อดูจุดตำหนิแต่ละจุด และเปิดโหมด CLAHE เพื่อส่องร่องยันต์และเส้นซุ้มให้ชัดขึ้นครับ`;
   }

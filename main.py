@@ -41,7 +41,7 @@ import openai
 # App Initialization & CORS
 # ---------------------------------------------------------
 app = FastAPI(
-    title="Dual-View Amulet AI API",
+    title="Amulet Engine API",
     description="Backend API for scanning dual-view amulets, grading condition, and valuation",
     version="1.0.0"
 )
@@ -1045,7 +1045,7 @@ async def root_index():
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Dual-View Amulet AI Backend</title>
+        <title>Amulet Engine Backend</title>
         <meta http-equiv="refresh" content="2; url=http://localhost:3000">
         <style>
             * { box-sizing: border-box; }
@@ -1127,7 +1127,7 @@ async def root_index():
     <body>
         <div class="card">
             <div class="badge">● FastAPI Backend พร้อมทำงาน (Status: OK)</div>
-            <h1>ส่องพระดอทคอม AI</h1>
+            <h1>Amulet Engine</h1>
             <p>
                 พอร์ต <strong>8000</strong> คือระบบ Backend API สำหรับประมวลผลโมเดล YOLO11 และ Typhoon AI<br>
                 ระบบกำลังพาคุณไปยังหน้าเว็บ Frontend (พอร์ต 3000)...
@@ -1223,7 +1223,7 @@ async def analyze_amulet(
     if not is_recognized:
         elapsed_ms = round((time.time() - start_time) * 1000, 1)
         disclaimer = (
-            "การประเมินเบื้องต้นโดยระบบปัญญาประดิษฐ์ (Dual-View Amulet AI) "
+            "การประเมินเบื้องต้นโดยระบบปัญญาประดิษฐ์ (Amulet Engine) "
             "เพื่อเป็นข้อมูลประกอบการตัดสินใจเบื้องต้นเท่านั้น มิใช่ใบรับรองพระแท้ทางกฎหมาย "
             "หรือหนังสือรับรองความแท้จากสมาคมผู้นิยมพระเครื่องพระบูชาไทย "
             "ควรปรึกษาผู้ชำนาญการหรือส่งตรวจสถาบันมาตรฐานก่อนทำนิติกรรมมูลค่าสูง"
@@ -1360,7 +1360,7 @@ async def analyze_amulet(
     elapsed_ms = round((time.time() - start_time) * 1000, 1)
 
     disclaimer = (
-        "การประเมินเบื้องต้นโดยระบบปัญญาประดิษฐ์ (Dual-View Amulet AI) "
+        "การประเมินเบื้องต้นโดยระบบปัญญาประดิษฐ์ (Amulet Engine) "
         "เพื่อเป็นข้อมูลประกอบการตัดสินใจเบื้องต้นเท่านั้น มิใช่ใบรับรองพระแท้ทางกฎหมาย "
         "หรือหนังสือรับรองความแท้จากสมาคมผู้นิยมพระเครื่องพระบูชาไทย "
         "ควรปรึกษาผู้ชำนาญการหรือส่งตรวจสถาบันมาตรฐานก่อนทำนิติกรรมมูลค่าสูง"

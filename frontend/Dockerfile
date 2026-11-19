@@ -1,4 +1,4 @@
-# Dual-View Amulet AI - Frontend Dockerfile
+# Amulet Engine - Frontend Dockerfile
 FROM node:20-alpine AS base
 
 # Stage 1: Install dependencies

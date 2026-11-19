@@ -889,7 +889,7 @@ export default function ResultDashboard({
                   ใบรายงานผลการตรวจส่องพระเครื่อง
                 </h3>
                 <p className="text-xs text-[#9A8F80]">
-                  รหัสอ้างอิง: #SCAN-{result.model_id.toUpperCase()}-2569 • ตรวจสอบโดย Dual-View Amulet AI
+                  รหัสอ้างอิง: #SCAN-{result.model_id.toUpperCase()}-2569 • ตรวจสอบโดย Amulet Engine
                 </p>
 
                 {/* Provenance Alert in Certificate */}

@@ -1,4 +1,4 @@
-# Dual-View Amulet AI - Backend Dockerfile
+# Amulet Engine - Backend Dockerfile
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
