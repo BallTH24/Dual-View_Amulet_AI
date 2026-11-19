@@ -1140,7 +1140,7 @@ async def root_index():
     """
     return HTMLResponse(content=html_content)
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     """
     Check server status, loaded YOLO model, processing device,

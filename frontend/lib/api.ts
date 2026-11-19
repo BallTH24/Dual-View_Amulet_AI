@@ -10,14 +10,11 @@ export function getDefaultApiBase(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  if (typeof window !== "undefined" && window.location.hostname) {
-    return `http://${window.location.hostname}:8000`;
-  }
-  return "http://localhost:8000";
+  // Default to relative path ("") so all API requests route through Next.js rewrites (/api and /health)
+  return "";
 }
 
-export const DEFAULT_API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 export interface DemoAmuletPreset {
   id: string;

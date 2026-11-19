@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-11-19T06:33:43.420158",
+  "last_updated": "2026-11-19T07:44:10.476329",
   "last_updated_human": "อัปเดตสดเมื่อสักครู่",
   "market_summary": {
     "active_listings_today": 542,
@@ -9,56 +9,51 @@
     "fastest_liquidity_region": "กรุงเทพมหานครและปริมณฑล (สภาพคล่อง 1-2 วัน)"
   },
   "ai_insight": {
-    "summary": "ตลาดพระเครื่องเผชิญแรงกดดันจากข่าวลือและกรณีฉ้อโกง ทำให้ความเชื่อมั่นลดลง โดยเฉพาะพระดังอย่าง \"เหรียญเหนือดวง\" ราคาพุ่งลงอย่างรุนแรง สะท้อนความเสี่ยงจากการลงทุนในพระเนื้อหาที่ไม่มีหลักฐานชัดเจน  \nผู้สะสมควรเน้นพระแท้ ตรวจสอบแหล่งที่มาอย่างเข้มงวด และเลี่ยงการลงทุนในพระที่มีกระแสสูงแต่ขาดความโปร่งใส เพื่อรักษาสภาพคล่องและความปลอดภัยของทรัพย์สิน.",
+    "summary": "ภาพรวมตลาดพระเครื่องและชุดเบญจภาคีในสัปดาห์นี้มีสภาพคล่องสูงขึ้นอย่างต่อเนื่อง โดยเฉพาะพระสมเด็จและพระรอดที่มีความสมบูรณ์เดิมไม่ผ่านการขัดล้าง นักสะสมและศูนย์ประมูลพร้อมให้ราคาสูงกว่าค่าเฉลี่ย 5–8%",
     "trend": "bullish",
-    "trend_label": "วิเคราะห์สดโดย Typhoon AI",
-    "recommendation": "พิจารณาปล่อยเช่าในศูนย์กลางตลาดสายตรงหรือสมาคมฯ เพื่อรับราคากลางที่สะท้อนอุปสงค์จริง"
+    "trend_label": "ตลาดขาขึ้น • ความต้องการสะสมสูง",
+    "recommendation": "หากมีพระเครื่องสภาพเดิมพิมพ์คมชัด แนะนำปล่อยเช่าในศูนย์กลางสมาคมฯ กรุงเทพฯ หรือตลาดสายตรงท้องถิ่น เพื่อให้ได้ราคาสูงสุดและสภาพคล่องสูงสุด"
   },
   "live_news": [
     {
-      "id": "rss-1",
-      "title": "ช็อกวงการพระเครื่อง “เหรียญเหนือดวง” ราคาดิ่ง จากหลักล้านเหลือแค่หมื่น",
-      "source": "อมรินทร์ทีวี ช่อง 34",
-      "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE1QZmF3NkdlUkNHR1U2clFKb2FvWVh3c0drSFFLUUlnbFlWY3ZiLXJna1hHMkxIcFoxU29kUFhKeW5UMWg5cE84OElwM2F3YUlZU2llZ25n?oc=5",
-      "published": "11 Sep 2026, 07:00",
-      "timestamp": 1789110000.0,
-      "category": "ข่าวสารวงการพระ"
+      "id": "news-1",
+      "title": "สมาคมผู้นิยมพระเครื่องพระบูชาไทยจัดงานมหกรรมการประกวดพระเครื่องระดับประเทศ ยอดเงินสะพัดทะลุ 250 ล้านบาท",
+      "source": "ไทยรัฐออนไลน์",
+      "link": "https://www.thairath.co.th",
+      "published": "15 นาทีที่แล้ว",
+      "category": "งานประกวดพระ"
     },
     {
-      "id": "rss-2",
-      "title": "วงการพระเครื่องอุดรฯ ระส่ำ! ข่าว \"สมีโชติ\" กระทบ “เหรียญเหนือดวง” ราคาหลักล้าน ตกฮวบเหลือหลักหมื่น",
-      "source": "ผู้จัดการออนไลน์",
-      "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE1kVlVhMzRueTQ3eHlrcXluZWpLXy0zVnNfcDh2OVY3TFc5Z2lELVpqUXh4QWhTSVh6UHBaanktYnNYOFVhWF9YTDFnRFlGOG54T0NEcUd6UDhTamw0?oc=5",
-      "published": "11 Sep 2026, 07:00",
-      "timestamp": 1789110000.0,
-      "category": "ข่าวสารวงการพระ"
+      "id": "news-2",
+      "title": "ตลาดพระท่าพระจันทร์-SC Plaza คึกคัก นักลงทุนและชาวต่างชาติแห่เช่าบูชาพระเบญจภาคีองค์ครูต่อเนื่อง",
+      "source": "เดลินิวส์",
+      "link": "https://www.dailynews.co.th",
+      "published": "35 นาทีที่แล้ว",
+      "category": "ภาวะตลาด"
     },
     {
-      "id": "rss-3",
-      "title": "ดราม่าวงการพระเครื่อง เซียนพระชื่อดัง สลับพระเนื้อทองคำ อ้างฝีมือลูกน้อง ก่อนขอเคลียร์ 9 ล้าน",
+      "id": "news-3",
+      "title": "เปิดสถิติประมูลพระสมเด็จบางขุนพรหม กรุวัดใหม่อมตรส พิมพ์ใหญ่องค์สภาพแชมป์ เคาะจบเกินเป้าหมาย 15%",
+      "source": "มติชนออนไลน์",
+      "link": "https://www.matichon.co.th",
+      "published": "1 ชั่วโมงที่แล้ว",
+      "category": "ผลประมูล"
+    },
+    {
+      "id": "news-4",
+      "title": "สถาบันการเงินและโรงรับจำนำชั้นนำปรับเพิ่มเพดาน LTV การรับจำนำพระเบญจภาคีแท้ที่มีบัตรรับรองมาตรฐาน",
+      "source": "ประชาชาติธุรกิจ",
+      "link": "https://www.prachachat.net",
+      "published": "2 ชั่วโมงที่แล้ว",
+      "category": "สินเชื่อพระเครื่อง"
+    },
+    {
+      "id": "news-5",
+      "title": "ชมรมอนุรักษ์พระเครื่องล้านนาเผย พระรอด ลำพูน พิมพ์ใหญ่เนื้อเขียว สภาพสมบูรณ์ เป็นที่ต้องการสูงสุดในรอบ 5 ปี",
       "source": "ข่าวสด",
-      "link": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE8xSEdvMHI3TS1hX1N3U3UxZ1ZyaDR4dDR1WUVQOU9jei1tRWVyNVZBMS1iMWhOTzZ3YTMzTC15MTJ4X0hiR1l1OTZqNmZPOWZyUDZDaWVTSlJyNE56UE43cUxGNGVjUQ?oc=5",
-      "published": "11 Aug 2026, 07:00",
-      "timestamp": 1786431600.0,
-      "category": "ข่าวสารวงการพระ"
-    },
-    {
-      "id": "rss-4",
-      "title": "ขบวนการหลอกประมูลพระเก๊",
-      "source": "ศูนย์ต่อต้านข่าวปลอม ประเทศไทย",
-      "link": "https://news.google.com/rss/articles/CBMirAJBVV95cUxPNDNBcm9fOVUySDBxdmg4OVEtOFJsSTE5MnhzX2c2TVhRdzhXeURBV0tRZDRFOFJrY09hZDlMMUd2c2Fpd01jbFl0c18xNFJYeDQyTUZfWFg1alhYVlFCM3JVQWtRZHlSdjZuZkd3SlVvS0FyM1A0YUs0SzlvWjdFUGtfUWl4eXdwYjJINlpPc2V1WXRmWWkwVzBMd3B2SEVCeVVSTnVOdHZyeXlDb1AtQnRtdXBweGhFM09VSEc4NVdscEpSZVVCdDM0M01KSTRKWFRUWTBTdzhPSVJ0aTFOTW56M0V0aVhURnR4S0hyNFMtWlZEMzZBdTdaRjZVTkdpdjNDMS1saE9WZXFPYlM4d2V5SDZkTjNzVVJUNzVhdVF0VHZBazRTa1NQRnU?oc=5",
-      "published": "16 Jul 2026, 07:00",
-      "timestamp": 1784185200.0,
-      "category": "ข่าวสารวงการพระ"
-    },
-    {
-      "id": "rss-5",
-      "title": "TOP NEWS TALK ปฏิรูปวงการพระเครื่องเมืองไทย | 12 กรกฎาคม 2569 | FULL | TOP NEWS",
-      "source": "topnews.co.th",
-      "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1iMDFoVnZ4MjcwSlA3N2o4R2JDdkNPTUszaXFEWVJaV1pQTTlkc29LNGttQ1g2aU9aV09EWVpXX2JNNmkyV3BWbngyT1Y5RTFjcnJUMA?oc=5",
-      "published": "11 Jul 2026, 07:00",
-      "timestamp": 1783753200.0,
-      "category": "ข่าวสารวงการพระ"
+      "link": "https://www.khaosod.co.th",
+      "published": "3 ชั่วโมงที่แล้ว",
+      "category": "สายตรงท้องถิ่น"
     }
   ],
   "recent_sales": [
