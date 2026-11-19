@@ -1,112 +1,114 @@
-# Dual-View Amulet AI
+# 🪷 Dual-View Amulet AI (ส่องพระดอทคอม AI)
 
-ระบบ Full-Stack Web Application สำหรับสแกนพระเครื่อง 2 ด้าน (**ด้านหน้า Obverse** และ **ด้านหลัง Reverse**) เพื่อระบุรุ่น ประเมินเปอร์เซ็นต์ความสมบูรณ์ (Condition Grading) คำนวณราคากลาง และแนะนำภูมิภาคที่ปล่อยเช่าได้ราคาสูงสุด ภายใน 1 นาที
+**แพลตฟอร์ม AI ตรวจสอบพิมพ์ทรง วิเคราะห์จุดตำหนิ นิติวิทยาศาสตร์ภาพถ่าย และประเมินราคากลางพระเครื่องแบบสองด้าน (B2C & B2B)**
+
+Dual-View Amulet AI ผสานการทำงานของ **Deep Learning (YOLOv11s)**, **Explainable Computer Vision (OpenCV)**, **Digital Image Forensics** และ **Thai Large Language Model (Typhoon v2.5 30B)** เพื่อยกระดับการประเมินสภาพและมูลค่าพระเครื่องให้โปร่งใส ตรวจสอบย้อนกลับได้ และรองรับทั้งนักสะสมทั่วไป (**B2C**) รวมถึงร้านพระเครื่องและโรงรับจำนำ (**B2B**)
 
 ---
 
-## 🏛️ สถาปัตยกรรมระบบ (Architecture)
+## ✨ ฟีเจอร์หลัก (Key Features)
 
+### 1. การวิเคราะห์แบบสองด้าน (Dual-View Inspection Pipeline)
+* **ด้านหน้า (Front View Classification):** จำแนกพิมพ์ทรงพระเครื่อง 7 รุ่นหลักด้วยโมเดล **YOLOv11s** (เร่งความเร็วผ่าน Apple Silicon MPS / GPU) พร้อม **Strict Recognition Gate (`conf >= 0.68`)** ตัดวัตถุที่ไม่ใช่พระเครื่องออกทันที และ **Somdej Ambiguity Gate** แจ้งเตือนพร้อมแสดงช่วงราคาเมื่อคะแนนความมั่นใจในกลุ่มพระสมเด็จ 3 วัดใกล้เคียงกัน
+* **ด้านหลัง (Back View CLAHE Enhancement):** ปรับปรุงความคมชัดของร่องยันต์ รอยจาร และคราบกรุอัตโนมัติด้วยอัลกอริทึม **CLAHE** บนช่องความสว่าง (L-channel) ในปริภูมิสี **CIELAB** โดยไม่ทำให้สีเนื้อพระเดิมเพี้ยน
+
+### 2. ระบบตรวจจับตำหนิเฉพาะตัวองค์พระ (Hybrid Explainable Defect Detection)
+* **Pixel-Level Silhouette Masking:** ครอบตัดเฉพาะกรอบพระจาก YOLO แล้วแยกตัวองค์พระออกจากพื้นหลังด้วย `cv2.grabCut` ร่วมกับ **Morphological Closing** เพื่ออุดร่องซุ้มครอบแก้วและฐานพระ ป้องกันการปักหมุดออกนอกองค์พระหรือจับซุ้มผิดเป็นรอยบิ่น
+* **การวิเคราะห์แผลภายในและขอบนอก:** ตรวจจับหลุม รอยกะเทาะ และรอยขีดข่วนภายในเนื้อพระผ่าน Eroded Mask และตรวจจับรอยบิ่นมุม/ขอบพระด้วย **Convex Hull & Convexity Defects** คัดเฉพาะจุดสำคัญสูงสุด 5 จุดพร้อมพิกัดระดับพิกเซล
+
+### 3. ระบบนิติวิทยาศาสตร์ภาพถ่าย 3 ชั้น (3-Layer Image Forensics & Provenance)
+ป้องกันการนำภาพที่สร้างจาก Generative AI หรือภาพที่ผ่านการรีทัชลบตำหนิมาหลอกอัปราคา โดยแบ่งระดับความน่าเชื่อถือบนใบรับรอง (`Tier 1`, `Tier 2`, `Unverified Metadata`, `Forensics Warning`):
+1. **Deep Metadata & Camera Fingerprint:** ตรวจสอบ EXIF, PNG/WebP Chunks, XMP และป้ายมาตรฐาน C2PA เพื่อหาลายเซ็น AI/ซอฟต์แวร์แต่งภาพ รวมถึงตรวจสอบข้อมูลฮาร์ดแวร์กล้องจริง (`Make`, `Model`, `ISO`, `FNumber`)
+2. **Error Level Analysis (ELA 8×8 Grid):** บีบอัดภาพซ้ำที่ JPEG Quality 90% เพื่อตรวจหาความผิดปกติของการบีบอัดเฉพาะจุดจากการลบหลุมหรือตัดต่อ
+3. **Sensor Noise Residual:** วิเคราะห์เกรนสัญญาณรบกวนความถี่สูงของเซนเซอร์กล้องเพื่อแยกแยะพื้นผิวสังเคราะห์จากภาพ AI
+
+### 4. การประเมินราคาและวิเคราะห์เชิงลึกด้วย Typhoon v2.5 30B
+* **Dynamic Valuation & B2B LTV:** คำนวณเปอร์เซ็นต์ความสมบูรณ์และราคากลางตามสภาพจริง พร้อมแสดงกรอบวงเงินรับเช่า/รับจำนำเชิงพาณิชย์ (**LTV 60–70%**) ในโหมด B2B
+* **Typhoon AI Synthesis & Q&A Chat:** สรุปจุดสังเกตพิมพ์ทรง ตำหนิ และคำแนะนำการปล่อยเช่าเป็นภาษาไทย พร้อมระบบแชตถาม-ตอบเชิงลึกอ้างอิงตามพระองค์ที่สแกน และระบบ **Offline Fallback** กรณีไม่มีอินเทอร์เน็ต
+
+### 5. เครื่องมือสำหรับนักสะสมและแดชบอร์ดตลาดพระ (Vault & Market Intelligence)
+* **Interactive 3x Digital Loupe:** แว่นส่องพระดิจิทัลกำลังขยาย 3 เท่า ใช้งานได้ทั้งเมาส์และหน้าจอสัมผัส
+* **AI Scan Certificate (PDF):** ออกใบสรุปผลสแกนพร้อมรหัสอ้างอิง `#SCAN-...` ป้ายสถานะ Trust Tier และสั่งพิมพ์เป็น PDF ได้ทันที
+* **Digital Amulet Vault:** ตู้พระส่วนตัวจัดเก็บบนเบราว์เซอร์ (`localStorage`) คำนวณจำนวนพระ มูลค่าพอร์ตโฟลิโอสะสม และความสมบูรณ์เฉลี่ย
+* **Real-Time Market Intelligence:** ดึงข่าวสารวงการพระจาก Google News RSS อัตโนมัติทุก 15 นาทีผ่าน `APScheduler` เรียงลำดับจากใหม่ล่าสุด และให้ Typhoon AI สรุปแนวโน้มผลกระทบราคา ควบคู่กับตารางดัชนีราคากลางรายภูมิภาค
+
+---
+
+## 🏛️ รุ่นพระเครื่องที่รองรับ (7 Supported Models)
+
+| Model ID | ชื่อรุ่นพระเครื่อง | วัด / กรุต้นกำเนิด |
+| :--- | :--- | :--- |
+| `somdej_watrakang` | พระสมเด็จวัดระฆังโฆสิตาราม พิมพ์ใหญ่ | วัดระฆังโฆสิตาราม กรุงเทพฯ |
+| `somdej_bangkhunprom` | พระสมเด็จบางขุนพรหม พิมพ์ใหญ่ | วัดใหม่อมตรส กรุงเทพฯ |
+| `somdej_ketchaiyo` | พระสมเด็จเกศไชโย พิมพ์ 7 ชั้น นิยม | วัดไชโยวรวิหาร จ.อ่างทอง |
+| `phra_nangphaya` | พระนางพญา พิมพ์เข่าโค้ง | กรุวัดนางพญา จ.พิษณุโลก |
+| `phra_phong_suphan` | พระผงสุพรรณ พิมพ์หน้าแก่ | วัดพระศรีรัตนมหาธาตุ จ.สุพรรณบุรี |
+| `phra_rod` | พระรอด พิมพ์ใหญ่ | กรุวัดมหาวัน จ.ลำพูน |
+| `phra_sumkor` | พระซุ้มกอ พิมพ์ใหญ่ มีกนก | กรุทุ่งเศรษฐี จ.กำแพงเพชร |
+
+---
+
+## 🏗️ สถาปัตยกรรมระบบ (System Architecture)
+
+```text
+[ Next.js 16 Frontend (Port 3000 - Dark Gold UI) ]
+       │  (Reverse Proxy: /api/* ──► http://127.0.0.1:8000)
+       ▼
+[ FastAPI Backend (Port 8000 - Asyncio + ThreadPool) ]
+       ├──► Image Forensics (Metadata/C2PA + 8x8 ELA + Noise Residual)
+       ├──► YOLOv11s Inference (Front View on Apple M4 MPS / GPU)
+       ├──► OpenCV Pipeline (Back LAB-CLAHE + GrabCut Hybrid Defect Detection)
+       ├──► Typhoon v2.5 30B API (Grounded Synthesis & Interactive Chat)
+       └──► APScheduler (15-min Google News RSS + AI Market Impact Cache)
 ```
-Dual-View Amulet AI
-├── backend/ & root
-│   ├── main.py                     # FastAPI Application (Endpoints: /health, /api/analyze, /api/chat)
-│   ├── requirements.txt            # Python dependencies (fastapi, uvicorn, ultralytics, cv2, etc.)
-│   ├── data/
-│   │   └── amulets_db.json         # ฐานข้อมูลพระเครื่อง 8 รุ่นยอดนิยม (พร้อมจุดสังเกตและราคากลาง)
-│   └── models/
-│       ├── best.pt                 # ตำแหน่งวาง Custom Fine-Tuned Model
-│       └── yolo11s.pt              # Fallback Model พร้อมใช้งานอัตโนมัติ
-│
-└── frontend/                       # Next.js (App Router) + Tailwind CSS
-    ├── src/app/page.tsx            # Full-flow Dashboard ในหน้าเดียว (Mobile-First / Temple Modern)
-    ├── src/app/globals.css         # Dark Gold / Temple Modern Theme
-    └── package.json
-```
 
 ---
 
-## ⚡ คุณสมบัติเด่น (Key Features)
+## 🚀 การติดตั้งและเริ่มต้นใช้งาน (Local Setup)
 
-1. **Dual-View Analysis + OpenCV CLAHE:**
-   - ประมวลผลภาพด้านหลังด้วย **OpenCV CLAHE (`clipLimit=2.0`, `tileGridSize=(8,8)`)** บนช่องสัญญาณ L (Luminance) ใน LAB color space เพื่อเร่งมิติความคมชัดของร่องยันต์และโค้ดตอกโดยไม่เสียสมดุลสีเดิม
-2. **YOLO11 Computer Vision & Fallback:**
-   - โหลดโมเดลจาก `./models/best.pt` และ Fallback ไปที่ `yolo11s.pt` อัตโนมัติ รองรับ Apple Silicon `device="mps"` (หรือ `cpu`) ที่ `imgsz=640`
-3. **สูตรคำนวณคะแนนความมั่นใจรวม (Combined Confidence):**
-   $$\text{Total Confidence} = (0.45 \times \text{front\_conf}) + (0.55 \times \text{back\_conf})$$
-4. **การประเมินสภาพความสมบูรณ์ (Condition Grading):**
-   - คำนวณเปอร์เซ็นต์ความสมบูรณ์ 50%–100% จากสัดส่วนพื้นที่ตำหนิ (`defect`) เทียบกับพื้นที่องค์พระ
-   - ประเมินราคากลางตามสภาพ:
-     $$\text{Estimated Price} = \text{int}\left(\text{Base Price} \times \frac{\text{Condition \%}}{100}\right)$$
-5. **วิเคราะห์ภูมิภาคปล่อยเช่า (Regional Liquidity Recommendation):**
-   - ชี้เป้าจังหวัดและศูนย์พระเครื่องที่มีความต้องการสะสมและกำลังซื้อสูงสุด
-6. **บูรณาการ OpenTyphoon AI (Thai LLM):**
-   - สรุปจุดสังเกต พุทธคุณ และกลยุทธ์การขายตามโหมดผู้ใช้ (`b2c` หรือ `b2b`) พร้อมระบบ **Timeout 4 วินาที และ Instant Fallback**
-   - รองรับการสนทนาถาม-ตอบเชิงลึกหลังสแกนผ่าน `/api/chat`
-7. **Ethical Disclaimer:**
-   - แถบจริยธรรมและข้อสงวนสิทธิ์ทางกฎหมาย ระบุชัดเจนว่าเป็นการประเมินเบื้องต้นโดย AI มิใช่ใบรับรองพระแท้ทางกฎหมาย
-
----
-
-## 🚀 วิธีการรันโปรเจกต์ (Quickstart)
-
-### 1. รัน Backend API (FastAPI)
+### 1. ตั้งค่าและรัน Backend (FastAPI)
 ```bash
-# 1. เข้าสู่ Virtual Environment
-source backend/venv/bin/activate
+# สร้างและเปิดใช้งาน Virtual Environment
+python3 -m venv .venv
+source .venv/bin/activate
 
-# 2. ตั้งค่า Typhoon API Key (ทางเลือก: หากไม่ใส่ ระบบมี Fallback ออฟไลน์อัตโนมัติ)
-export TYPHOON_API_KEY="your_typhoon_api_key"
-export TYPHOON_MODEL="typhoon-v1.5x-70b-instruct"
+# ติดตั้งไลบรารีที่จำเป็น
+pip install -r requirements.txt
 
-# 3. เริ่มต้นรันเซิร์ฟเวอร์
+# ตั้งค่า API Key ของ Typhoon (คัดลอกจากไฟล์ตัวอย่าง)
+cp .env.example .env
+# แก้ไขไฟล์ .env และใส่ค่า TYPHOON_API_KEY=your_api_key_here
+
+# เริ่มการทำงานของ Backend (Port 8000)
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
-- ทดสอบสุขภาพเซิร์ฟเวอร์: `http://localhost:8000/health`
-- เอกสาร Swagger API: `http://localhost:8000/docs`
 
-### 2. รัน Frontend (Next.js)
+### 2. ตั้งค่าและรัน Frontend (Next.js 16)
 ```bash
 cd frontend
+npm install
+
+# รันโหมดพัฒนา (Port 3000)
 npm run dev
 ```
-- เปิดเบราว์เซอร์ที่: `http://localhost:3000`
+เปิดเบราว์เซอร์ไปที่ `http://localhost:3000` (หรือผ่าน IP ในวง LAN เดียวกันเพื่อทดสอบกล้องมือถือ)
 
 ---
 
-## 📡 รายละเอียด API Endpoints
+## 🌐 การเปิดลิงก์สาธารณะ HTTPS สำหรับทดสอบมือถือ (Cloudflare Tunnel)
 
-### 1. `GET /health`
-ตรวจสอบสถานะเซิร์ฟเวอร์ โมเดลที่โหลดอยู่ (`best.pt` หรือ `yolo11s.pt`) และอุปกรณ์ประมวลผล (`mps` หรือ `cpu`)
+เนื่องจาก Next.js ตั้งค่า `rewrites` ส่งต่อ `/api/:path*` และ `/health` ไปยัง FastAPI พอร์ต `8000` ภายในเครื่องไว้แล้ว สามารถเปิดอุโมงค์ HTTPS ผ่านพอร์ต `3000` เพียงเส้นเดียวได้ด้วยคำสั่ง:
 
-### 2. `POST /api/analyze`
-- **Form Data:**
-  - `front_image`: File (ภาพด้านหน้า)
-  - `back_image`: File (ภาพด้านหลัง)
-  - `user_mode`: `"b2c"` หรือ `"b2b"`
-- **Response JSON:**
-  - `model_id`: รหัสรุ่นพระเครื่อง
-  - `amulet_info`: ข้อมูลวัด ปีสร้าง จุดสังเกตหน้า-หลัง
-  - `confidence`: `{ total, front, back, formula }`
-  - `condition`: `{ condition_pct, grade, defect_count, defects_summary }`
-  - `pricing`: `{ base_price_thb, estimated_price_thb, discount_pct }`
-  - `recommendation`: `{ region, reason }`
-  - `ai_analysis`: บทวิเคราะห์สังเคราะห์โดย Typhoon AI
-  - `disclaimer`: ข้อความจริยธรรมและข้อสงวนสิทธิ์
+```bash
+# ติดตั้ง cloudflared (ทำครั้งแรกครั้งเดียว)
+brew install cloudflared
 
-### 3. `POST /api/chat`
-- **Request JSON:**
-  ```json
-  {
-    "amulet_name": "พระสมเด็จวัดระฆังโฆสิตาราม พิมพ์ใหญ่",
-    "context_info": "รายละเอียดและผลการสแกน...",
-    "question": "จุดสังเกตชี้ขาดด้านหลังดูอย่างไร?"
-  }
-  ```
-- **Response JSON:**
-  ```json
-  {
-    "success": true,
-    "answer": "คำตอบเชิงลึกจาก Typhoon AI...",
-    "source": "typhoon_llm"
-  }
-  ```
+# เปิดอุโมงค์สาธารณะพร้อมป้องกันเครื่องเข้าสู่โหมดพักหน้าจอ
+caffeinate -dimsu cloudflared tunnel --url http://localhost:3000
+```
+นำลิงก์ `https://<your-tunnel>.trycloudflare.com` ที่ปรากฏใน Terminal ไปเปิดบนมือถือผ่านเครือข่าย 4G/5G เพื่อใช้งานกล้องถ่ายสดได้ทันที
+
+---
+
+## ⚠️ ข้อจำกัดความรับผิดชอบ (Ethical Disclaimer)
+ผลการวิเคราะห์พิมพ์ทรง จุดตำหนิ และราคากลางจากระบบ **Dual-View Amulet AI** เป็นการประมวลผลเชิงสถิติและคอมพิวเตอร์วิทัศน์เพื่อใช้ประกอบการตัดสินใจเบื้องต้นเท่านั้น ไม่สามารถใช้แทนใบรับรองพระแท้จากสมาคมผู้นิยมพระเครื่องพระบูชาไทยหรือสถาบันรับรองมาตรฐานสากลได้
