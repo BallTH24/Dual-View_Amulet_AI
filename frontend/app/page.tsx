@@ -29,6 +29,10 @@ function createSampleAmuletFile(
   label: string
 ): Promise<File> {
   return new Promise((resolve) => {
+    if (typeof document === "undefined") {
+      resolve(new File([new Blob([])], `demo_${side}.png`, { type: "image/png" }));
+      return;
+    }
     try {
       const canvas = document.createElement("canvas");
       canvas.width = 480;

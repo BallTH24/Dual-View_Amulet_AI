@@ -75,7 +75,10 @@ export default function AmuletVault({
   };
 
   const handleClearAll = () => {
-    if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบพระเครื่องทั้งหมดออกจากตู้พระ?")) {
+    if (
+      typeof window !== "undefined" &&
+      window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบพระเครื่องทั้งหมดออกจากตู้พระ?")
+    ) {
       setItems([]);
       saveVaultToStorage([]);
       onVaultCountChange?.(0);

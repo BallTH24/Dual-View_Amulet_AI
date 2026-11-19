@@ -47,6 +47,10 @@ interface ResultDashboardProps {
 
 async function downscaleImage(src: string, maxSize = 400): Promise<string> {
   return new Promise((resolve) => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      resolve(src);
+      return;
+    }
     try {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -112,6 +116,7 @@ export default function ResultDashboard({
 
   // Check if item is already saved in vault
   useEffect(() => {
+    if (typeof window === "undefined") return;
     try {
       const raw = localStorage.getItem("amulet_vault_v1");
       if (raw) {
@@ -128,6 +133,7 @@ export default function ResultDashboard({
 
   const handleSaveToVault = async () => {
     if (isSavedToVault || savingVault) return;
+    if (typeof window === "undefined") return;
     setSavingVault(true);
     try {
       const frontThumb = frontPreview ? await downscaleImage(frontPreview, 400) : "";
@@ -982,7 +988,9 @@ export default function ResultDashboard({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.print();
+                  }}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#E6B85C] hover:bg-[#F0C975] text-[#18130D] text-xs font-bold transition cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
